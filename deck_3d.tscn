@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bem0apwgbhj8a"]
+
+[ext_resource type="Script" uid="uid://bbqm57f4gudy8" path="res://Deck_3d.gd" id="1_bnnbl"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_jj62p"]
+size = Vector3(0.3, 0.15, 0.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bnnbl"]
+size = Vector3(0.3, 0.15, 0.4)
+
+[node name="Deck3D" type="Node3D" unique_id=228609675]
+script = ExtResource("1_bnnbl")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=7054856]
+mesh = SubResource("BoxMesh_jj62p")
+
+[node name="Area3D" type="Area3D" parent="." unique_id=2151719]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=368261845]
+shape = SubResource("BoxShape3D_bnnbl")

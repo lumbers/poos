@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b03qcdifhsvio"]
+
+[ext_resource type="Texture2D" uid="uid://cra1kdibysm2q" path="res://cards/art/artworks-WGYBGmZyKAHOWcba-Hy2taQ-t500x500.jpg" id="1_sw8ml"]
+[ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="2_ae2yy"]
+
+[resource]
+script = ExtResource("2_ae2yy")
+card_name = "Gedagedago"
+card_type = "PIE"
+max_hp = 200
+passives_and_attacks = "Nugget: 100"
+card_art = ExtResource("1_sw8ml")
+metadata/_custom_type_script = "uid://cwybq2mf4l4h3"

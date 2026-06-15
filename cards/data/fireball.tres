@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://crcymb5btqxrm"]
+
+[ext_resource type="Texture2D" uid="uid://cnaupd46prqw8" path="res://cards/art/fireball.png" id="1_ak70l"]
+[ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="1_gj7i5"]
+
+[resource]
+script = ExtResource("1_gj7i5")
+use_full_paper_image = true
+card_name = "Fireball"
+card_type = "spell"
+max_hp = 0
+attribute = ""
+passives_and_attacks = "Deal 100 dmg to 3 cards."
+card_art = ExtResource("1_ak70l")
+metadata/_custom_type_script = "uid://cwybq2mf4l4h3"

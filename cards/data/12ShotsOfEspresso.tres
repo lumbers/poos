@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b8hkoy7vm2c8u"]
+
+[ext_resource type="Texture2D" uid="uid://benukcd5e0q04" path="res://cards/art/12shots.png" id="1_6ipd1"]
+[ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="2_t316u"]
+
+[resource]
+script = ExtResource("2_t316u")
+use_full_paper_image = true
+card_name = "12 Shots of Espresso"
+card_type = "item"
+max_hp = 0
+attribute = ""
+passives_and_attacks = "For this turn only, you may draw 2 cards and attack twice. "
+card_art = ExtResource("1_6ipd1")
+metadata/_custom_type_script = "uid://cwybq2mf4l4h3"
