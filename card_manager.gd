@@ -2,7 +2,6 @@ extends Node3D
 
 @export var card_scene: PackedScene
 
-# --- ROBLOX UNO STYLE CONFIGURATION ---
 @export var max_hand_width: float = 3.4
 @export var card_spacing: float = 0.28
 @export var hand_y_offset: float = -0.75
@@ -44,7 +43,7 @@ func arrange_hand():
 		var target_scale = Vector3(0.75, 0.75, 0.75)
 		
 		if i == hovered_card_index:
-			target_y += 0.15
+			target_y += 0.3
 			target_z += 0.05
 			target_scale = Vector3(0.85, 0.85, 0.85)
 			

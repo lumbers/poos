@@ -27,13 +27,13 @@ func _on_deck_clicked():
 	add_child(new_card)
 	new_card.global_position = deck_3d.global_position + Vector3(0, 0.1, 0)
 	
-	# --- THE FLAT "SOUTH" SLIDE PATH ---
-	# We maintain the exact same local height (Y) and lateral position (X) as the deck pile.
-	# We only slide it straight "South" (forward on the Z axis) relative to the deck's orientation!
-	# Adjust the + 1.8 value if you want it to travel further or shorter down the table grid.
-	var fly_past_target = deck_3d.global_position + Vector3(0, 0.1, 1.8)
+	# --- THE FIXED LINE: FORCE START HORIZONTAL ---
+	# This overrides the scene file's vertical posture the exact millisecond it spawns!
+	new_card.global_rotation = Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0)
 	
-	# We use a linear or snappier transitional easing curve so it feels like a physical pull
+	# --- THE FLAT "SOUTH" SLIDE PATH ---
+	var fly_past_target = deck_3d.global_position + Vector3(0, 0.1, 3)
+	
 	var fly_tween = create_tween().set_parallel(true)
 	fly_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	
