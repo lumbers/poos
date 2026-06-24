@@ -92,68 +92,55 @@ func try_place_pie_on_field(card_node: Node3D):
 				print("Placed Pie on Bench Slot ", i + 1)
 				break
 				
-	# 3. ANIMATION SEQUENCE
+	# 3. HIGH-SPEED COUNTER-CLOCKWISE SPIN AND ACCELERATED SLAM
 	if placement_successful:
 		card_node.is_on_board = true
 		
-		# Disconnect card from the hand folder layout completely
+		# Disconnect card from hand layout folder instantly
 		card_node.get_parent().remove_child(card_node)
-		add_child(card_node) # Put into global world space
+		add_child(card_node)
 		
-		# --- CINEMATIC SETUP VARIABES ---
 		var final_field_scale = Vector3(0.85, 0.85, 0.85)
-		var camera_zoom_scale = Vector3(1.4, 1.4, 1.4) # Giant reveal size
+		var camera_zoom_scale = Vector3(1.3, 1.3, 1.3)
 		
-		# Calculate a global position right in front of your camera lens lens
-		# We project 1.5 units forward (-Z) from camera space, and slightly down (-Y)
-		var camera_front_pos = camera_3d.global_transform.origin + camera_3d.global_transform.basis.z * -1.5 + Vector3(0, -0.2, 0)
+		# Position anchor right in front of camera lens lens
+		var camera_front_pos = camera_3d.global_transform.origin + camera_3d.global_transform.basis.z * -1.3 + Vector3(0, -0.1, 0)
 		
-		# The card should face perfectly flat toward the camera view during the reveal stage
-		var camera_face_rotation = camera_3d.global_rotation
-		
-		# Create a master serial tween sequence (not parallel!)
+		# Create a serial master chain sequence
 		var show_tween = create_tween()
 		
 		# ==========================================================
-		# STEP 1: FLY UP IN FRONT OF CAMERA & SPIN
+		# PHASE 1: EXPLOSIVE RUSH TO CAMERA & HORIZONTAL TUMBLE (0.2s)
 		# ==========================================================
-		# Create a parallel subset block for the first movement phase
 		var fly_up = show_tween.parallel()
 		fly_up.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		
-		# Zoom right to the camera face and get big!
-		fly_up.tween_property(card_node, "global_position", camera_front_pos, 0.4)
-		fly_up.tween_property(card_node, "scale", camera_zoom_scale, 0.4)
-		fly_up.tween_property(card_node, "global_rotation", camera_face_rotation, 0.4)
+		fly_up.tween_property(card_node, "global_position", camera_front_pos, 0.2)
+		fly_up.tween_property(card_node, "scale", camera_zoom_scale, 0.2)
 		
-		# THE SPIN: Spin 360 degrees around its local Y-axis for visual flare!
-		# We add deg_to_rad(360) onto its current rotation layout
-		var spin_target_y = camera_face_rotation.y + deg_to_rad(360)
-		fly_up.tween_property(card_node, "global_rotation:y", spin_target_y, 0.4)
+		# --- THE PERFECT HORIZONTAL FLIP ---
+		# We force a clean 360-degree rotation loop strictly on the Y-axis (Yaw)
+		# relative to the camera face, keeping X and Z perfectly steady so it doesn't wobble!
+		var target_rot_y = camera_3d.global_rotation.y + deg_to_rad(360)
 		
-		# Hold it there for a tiny micro-second fraction so player can process the card art
-		show_tween.tween_interval(0.1)
-		
+		fly_up.tween_property(card_node, "global_rotation:x", camera_3d.global_rotation.x, 0.2)
+		fly_up.tween_property(card_node, "global_rotation:y", target_rot_y, 0.2)
+		fly_up.tween_property(card_node, "global_rotation:z", camera_3d.global_rotation.z, 0.2)
 		# ==========================================================
-		# STEP 2: LAUNCH & SLAM INTO THE GRID SLOT
+		# PHASE 2: INSTANT ACCELERATED DIVE (0.18s)
 		# ==========================================================
-		# We chain a fresh parallel block to run IMMEDIATELY after the camera hold finishes
 		var slam_down = show_tween.chain().parallel()
-		
-		# TRANS_BACK creates that crisp overshooting physical impact look!
-		slam_down.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		slam_down.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 		
 		var final_pos = target_global_position + Vector3(0, 0.02, 0)
 		
-		# Dive from camera down onto table slot and settle to normal field size
-		slam_down.tween_property(card_node, "global_position", final_pos, 0.35)
-		slam_down.tween_property(card_node, "global_rotation", Vector3(deg_to_rad(-90), 0, 0), 0.35)
-		slam_down.tween_property(card_node, "scale", final_field_scale, 0.35)
+		slam_down.tween_property(card_node, "global_position", final_pos, 0.18)
+		slam_down.tween_property(card_node, "global_rotation", Vector3(deg_to_rad(-90), 0, 0), 0.18)
+		slam_down.tween_property(card_node, "scale", final_field_scale, 0.18)
 		
-		# Update the hand folder gaps immediately
+		# Clear up the hand gaps frame-one
 		card_manager.arrange_hand()
 		
-		# Keep it interactive on the field
 		show_tween.chain().tween_callback(func():
 			if card_node.has_node("Area3D"):
 				card_node.get_node("Area3D").input_ray_pickable = true
