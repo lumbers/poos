@@ -22,22 +22,22 @@ func _ready():
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			# FIX 3: Check if another card is ALREADY being dragged globally before starting a new drag!
+			# Block multi-card dragging
 			if main_game and main_game.has_node("Camera3D/CardManager"):
 				for existing_card in main_game.get_node("Camera3D/CardManager").get_children():
 					if existing_card.get("is_dragging") == true:
-						return # Block picking up multiple cards!
+						return
 
 			if card_info and card_info.card_type.to_lower() == "pie":
 				is_dragging = true
 				$Area3D.input_ray_pickable = false 
 				
-				# FIX 2: FORCE the hand manager to instantly rearrange the moment you click!
 				var manager = get_parent()
 				if manager and manager.has_method("arrange_hand"):
 					manager.hovered_card_index = -1
 					manager.arrange_hand()
 		elif !event.pressed and is_dragging:
+			# QOL FIX: When you let go of left click, stop dragging immediately and check placement!
 			is_dragging = false
 			$Area3D.input_ray_pickable = true
 			_check_field_drop()
@@ -80,15 +80,16 @@ func _check_field_drop():
 	
 	var query = PhysicsRayQueryParameters3D.create(ray_origin, ray_end)
 	query.collide_with_areas = true
-	query.collision_mask = 2 # Looks specifically for FieldDropZone on Layer 2
 	
 	var result = space_state.intersect_ray(query)
 	
+	# FIXED: Clean node-name checking to guarantee placement registers
 	if result and result.collider.name == "FieldDropZone":
 		if main_game and main_game.has_method("try_place_pie_on_field"):
 			main_game.try_place_pie_on_field(self)
 			return
 			
+	# QOL FIX: If you let go anywhere else on the screen, instantly snap back into hand folder layout
 	_cancel_dragging()
 
 func load_card_data():
