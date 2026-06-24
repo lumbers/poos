@@ -75,83 +75,96 @@ func try_place_pie_on_field(card_node: Node3D):
 	var target_global_position: Vector3 = Vector3.ZERO
 	var placement_successful: bool = false
 	
-	# 1. PRIORITY 1: Check if the Active Spot is free
 	if active_slot_card == null:
 		active_slot_card = card_node
 		target_global_position = active_slot_marker.global_position
 		placement_successful = true
-		print("Placed Pie in the Active Zone!")
-		
-	# 2. PRIORITY 2: Check Bench Slots left-to-right
 	else:
 		for i in range(bench_slot_cards.size()):
 			if bench_slot_cards[i] == null:
 				bench_slot_cards[i] = card_node
 				target_global_position = bench_markers[i].global_position
 				placement_successful = true
-				print("Placed Pie on Bench Slot ", i + 1)
 				break
-				
-	# 3. HIGH-SPEED COUNTER-CLOCKWISE SPIN AND ACCELERATED SLAM
+
 	if placement_successful:
 		card_node.is_on_board = true
-		
-		# Disconnect card from hand layout folder instantly
 		card_node.get_parent().remove_child(card_node)
 		add_child(card_node)
 		
-		var final_field_scale = Vector3(0.85, 0.85, 0.85)
-		var camera_zoom_scale = Vector3(1.3, 1.3, 1.3)
-		
-		# Position anchor right in front of camera lens lens
-		var camera_front_pos = camera_3d.global_transform.origin + camera_3d.global_transform.basis.z * -1.3 + Vector3(0, -0.1, 0)
-		
-		# Create a serial master chain sequence
-		var show_tween = create_tween()
-		
-		# ==========================================================
-		# PHASE 1: EXPLOSIVE RUSH TO CAMERA & HORIZONTAL TUMBLE (0.2s)
-		# ==========================================================
-		var fly_up = show_tween.parallel()
-		fly_up.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		
-		fly_up.tween_property(card_node, "global_position", camera_front_pos, 0.2)
-		fly_up.tween_property(card_node, "scale", camera_zoom_scale, 0.2)
-		
-		# --- THE PERFECT HORIZONTAL FLIP ---
-		# We force a clean 360-degree rotation loop strictly on the Y-axis (Yaw)
-		# relative to the camera face, keeping X and Z perfectly steady so it doesn't wobble!
-		var target_rot_y = camera_3d.global_rotation.y + deg_to_rad(360)
-		
-		fly_up.tween_property(card_node, "global_rotation:x", camera_3d.global_rotation.x, 0.2)
-		fly_up.tween_property(card_node, "global_rotation:y", target_rot_y, 0.2)
-		fly_up.tween_property(card_node, "global_rotation:z", camera_3d.global_rotation.z, 0.2)
-		# ==========================================================
-		# PHASE 2: INSTANT ACCELERATED DIVE (0.18s)
-		# ==========================================================
-		var slam_down = show_tween.chain().parallel()
-		slam_down.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-		
-		var final_pos = target_global_position + Vector3(0, 0.02, 0)
-		
-		slam_down.tween_property(card_node, "global_position", final_pos, 0.18)
-		slam_down.tween_property(card_node, "global_rotation", Vector3(deg_to_rad(-90), 0, 0), 0.18)
-		slam_down.tween_property(card_node, "scale", final_field_scale, 0.18)
-		
-		# Clear up the hand gaps frame-one
+		# ── Align card face to camera BEFORE any animation ──
+		card_node.global_transform.basis = camera_3d.global_transform.basis
+
+		var cam_forward = -camera_3d.global_transform.basis.z
+		var cam_down = -camera_3d.global_transform.basis.y
+		var camera_front_pos = camera_3d.global_transform.origin \
+		+ cam_forward * 1.3 \
+		+ cam_down * 0.15
+
+		var zoom_scale   = Vector3(1.3, 1.3, 1.3)
+		var field_scale  = Vector3(0.85, 0.85, 0.85)
+
+		# ── STEP 1: Fly to camera centre ──
+		var tween = create_tween()
+		var fly = tween.parallel()
+		fly.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		fly.tween_property(card_node, "global_position", camera_front_pos, 0.35)
+		fly.tween_property(card_node, "scale", zoom_scale, 0.35)
+
+		# ── PAUSE: Hold in front of camera before spinning ──
+		tween.chain().tween_interval(0.3)
+
+		# ── STEP 2: Re-orient to camera, THEN capture basis for spin ──
+		var spin_duration = 0.45
+		var start_basis = Basis()
+
+		tween.chain().tween_callback(func():
+			# Card faces camera: -90° X rotated back by camera pitch offset
+			# Camera is -50° X, card mesh origin is -90° X flat
+			# So facing camera = rotate X by +50° from flat = -90+50 = -40° ... 
+			# Simplest: just use the camera basis directly, it works for facing
+			card_node.global_transform.basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-50)))
+			card_node.scale = zoom_scale
+			start_basis = card_node.global_transform.basis
+		)
+
+		tween.chain().tween_method(
+			func(t: float):
+				var angle = -TAU * t
+				var spin_basis = Basis(Vector3.UP, angle)
+				card_node.global_transform.basis = spin_basis * start_basis,
+			0.0, 1.0, spin_duration
+		)
+
+		# Slam: -90° X is the dragging flat orientation, matches card_3d.gd
+		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+		var slam = tween.chain().parallel()
+		slam.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		slam.tween_property(card_node, "global_position",
+			target_global_position + Vector3(0, 0.02, 0), 0.18)
+		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.18)
+		slam.tween_property(card_node, "scale", field_scale, 0.18)
+
+		# ── STEP 3: Slam down ──
+		slam.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		slam.tween_property(card_node, "global_position",
+			target_global_position + Vector3(0, 0.02, 0), 0.18)
+		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.18)
+		slam.tween_property(card_node, "scale", field_scale, 0.18)
+
 		card_manager.arrange_hand()
-		
-		show_tween.chain().tween_callback(func():
+
+		tween.chain().tween_callback(func():
 			if card_node.has_node("Area3D"):
 				card_node.get_node("Area3D").input_ray_pickable = true
 		)
-			
+
 	else:
 		print("Field is full! Returning card to hand.")
 		if card_node.has_method("_cancel_dragging"):
 			card_node._cancel_dragging()
 			
-		# Call this to wake up the field drop zone when a drag starts
+# Call this to wake up the field drop zone when a drag starts
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):
 		# Inversing the activation: if we want it active, disabled must be false
