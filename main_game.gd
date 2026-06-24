@@ -92,31 +92,32 @@ func try_place_pie_on_field(card_node: Node3D):
 				print("Placed Pie on Bench Slot ", i + 1)
 				break
 				
-	# 3. IF SUCCESSFUL: Disconnect from hand entirely and slide to the marker location
+	# 3. IF SUCCESSFUL: Disconnect from hand entirely and animate the game board entry
 	if placement_successful:
-		# Remove from the CardManager folder layout system
 		card_node.get_parent().remove_child(card_node)
-		add_child(card_node) # Add directly to main world space
+		add_child(card_node)
 		
 		# Set card properties for the field
-		card_node.scale = Vector3(0.55, 0.55, 0.55) # Shrink slightly so it fits perfectly inside your squares
+		card_node.scale = Vector3(0.55, 0.55, 0.55) # Matches slot size
 		
-		# Animate a smooth snap down onto the board grid
+		# --- POKEMON TCG STYLE SLAM TWEEN ---
 		var snap_tween = create_tween().set_parallel(true)
-		snap_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		
-		# Slide to slot position, add a tiny Y height gap so it rests on the grid
-		snap_tween.tween_property(card_node, "global_position", target_global_position + Vector3(0, 0.02, 0), 0.2)
-		# Keep it flat face up against the board
-		snap_tween.tween_property(card_node, "global_rotation", Vector3(deg_to_rad(-90), 0, 0), 0.2)
+		# TRANS_BACK + EASE_OUT makes it pop up slightly and slam down like a physical chip!
+		snap_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		
-		# Force hand to adjust and immediately close up the permanent empty gap
+		# Destination is right on the marker surface
+		var final_pos = target_global_position + Vector3(0, 0.02, 0)
+		
+		# Tween the position and flat layout over 0.25 seconds
+		snap_tween.tween_property(card_node, "global_position", final_pos, 0.25)
+		snap_tween.tween_property(card_node, "global_rotation", Vector3(deg_to_rad(-90), 0, 0), 0.25)
+		
+		# Force hand manager to update seamlessly
 		card_manager.arrange_hand()
 		
-		# Turn interaction back on if you want field cards clickable later
 		if card_node.has_node("Area3D"):
 			card_node.get_node("Area3D").input_ray_pickable = true
-			
 	else:
 		# NO SLOTS AVAILABLE: Reject and drop back into hand
 		print("Field is full! Returning card to hand.")
