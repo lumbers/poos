@@ -20,27 +20,29 @@ func _ready():
 	$Area3D.input_event.connect(_on_input_event)
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			# Block multi-card dragging
-			if main_game and main_game.has_node("Camera3D/CardManager"):
-				for existing_card in main_game.get_node("Camera3D/CardManager").get_children():
-					if existing_card.get("is_dragging") == true:
-						return
+	# 1. Detect the initial click to start dragging
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if main_game and main_game.has_node("Camera3D/CardManager"):
+			for existing_card in main_game.get_node("Camera3D/CardManager").get_children():
+				if existing_card.get("is_dragging") == true:
+					return
 
-			if card_info and card_info.card_type.to_lower() == "pie":
-				is_dragging = true
-				$Area3D.input_ray_pickable = false 
-				
-				var manager = get_parent()
-				if manager and manager.has_method("arrange_hand"):
-					manager.hovered_card_index = -1
-					manager.arrange_hand()
-		elif !event.pressed and is_dragging:
-			# QOL FIX: When you let go of left click, stop dragging immediately and check placement!
+		if card_info and card_info.card_type.to_lower() == "pie":
+			is_dragging = true
+			$Area3D.input_ray_pickable = false 
+			
+			var manager = get_parent()
+			if manager and manager.has_method("arrange_hand"):
+				manager.hovered_card_index = -1
+				manager.arrange_hand()
+
+# FIXED: Global input listener catches the mouse release anywhere on the screen!
+func _input(event: InputEvent):
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and !event.pressed:
+		if is_dragging:
 			is_dragging = false
 			$Area3D.input_ray_pickable = true
-			_check_field_drop()
+			_check_field_drop() # Run the drop check instantly!
 
 func _process(delta):
 	if is_dragging:
