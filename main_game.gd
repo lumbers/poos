@@ -21,6 +21,9 @@ var bench_slot_cards: Array[Node3D] = [null, null, null] # Holds up to 3 cards
 func _ready():
 	get_viewport().physics_object_picking = true
 	deck_3d.deck_clicked.connect(_on_deck_clicked)
+	
+	# Start with the zone disabled so it doesn't block the deck or table clicks
+	activate_field_drop_zone(false)
 
 func _on_deck_clicked():
 	if card_pool.is_empty():
@@ -119,3 +122,10 @@ func try_place_pie_on_field(card_node: Node3D):
 		print("Field is full! Returning card to hand.")
 		if card_node.has_method("_cancel_dragging"):
 			card_node._cancel_dragging()
+			
+		# Call this to wake up the field drop zone when a drag starts
+func activate_field_drop_zone(should_activate: bool):
+	if has_node("FieldDropZone/CollisionShape3D"):
+		# Inversing the activation: if we want it active, disabled must be false
+		$FieldDropZone/CollisionShape3D.disabled = !should_activate
+		print("Field Drop Zone Collision Active: ", should_activate)

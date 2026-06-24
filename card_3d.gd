@@ -20,7 +20,6 @@ func _ready():
 	$Area3D.input_event.connect(_on_input_event)
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
-	# 1. Detect the initial click to start dragging
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if main_game and main_game.has_node("Camera3D/CardManager"):
 			for existing_card in main_game.get_node("Camera3D/CardManager").get_children():
@@ -30,6 +29,10 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 		if card_info and card_info.card_type.to_lower() == "pie":
 			is_dragging = true
 			$Area3D.input_ray_pickable = false 
+			
+			# ---> WAKE UP THE FIELD DETECTOR WINDOW <---
+			if main_game and main_game.has_method("activate_field_drop_zone"):
+				main_game.activate_field_drop_zone(true)
 			
 			var manager = get_parent()
 			if manager and manager.has_method("arrange_hand"):
@@ -67,6 +70,10 @@ func _cancel_dragging():
 	$Area3D.input_ray_pickable = true
 	is_hovered = false
 	
+	# ---> HIDE THE FIELD DETECTOR AGAIN <---
+	if main_game and main_game.has_method("activate_field_drop_zone"):
+		main_game.activate_field_drop_zone(false)
+	
 	var manager = get_parent()
 	if manager and manager.has_method("arrange_hand"):
 		manager.hovered_card_index = -1
@@ -85,13 +92,14 @@ func _check_field_drop():
 	
 	var result = space_state.intersect_ray(query)
 	
-	# FIXED: Clean node-name checking to guarantee placement registers
 	if result and result.collider.name == "FieldDropZone":
 		if main_game and main_game.has_method("try_place_pie_on_field"):
 			main_game.try_place_pie_on_field(self)
+			# ---> CLOSE THE ZONE UPON SUCCESSFUL DROP <---
+			if main_game and main_game.has_method("activate_field_drop_zone"):
+				main_game.activate_field_drop_zone(false)
 			return
 			
-	# QOL FIX: If you let go anywhere else on the screen, instantly snap back into hand folder layout
 	_cancel_dragging()
 
 func load_card_data():
