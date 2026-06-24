@@ -106,9 +106,10 @@ shape = SubResource("BoxShape3D_mf81u")
 debug_color = Color(0.6313726, 0.1254902, 0.5921569, 1)
 
 [node name="BoardSlots" type="Node3D" parent="." unique_id=1523343456]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.38446522)
 
 [node name="ActiveSlot" type="Marker3D" parent="BoardSlots" unique_id=612821460]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.65)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.4649006)
 
 [node name="BenchSlot1" type="Marker3D" parent="BoardSlots" unique_id=1678164155]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.79, 0.1, 1.4)

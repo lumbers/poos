@@ -1,13 +1,14 @@
 extends Node3D
 
 var is_dragging: bool = false
+# --- NEW STATE TRACKER ---
+var is_on_board: bool = false 
+
 @onready var main_game = get_node("/root/MainGame")
 
-# Drop your sanic.tres file into this slot in the inspector later!
 @export var card_info: CardData
 @onready var preview_panel = get_node("/root/MainGame/CanvasLayer/CardPreviewPanel")
 
-# --- NEW HOVER CONTROLS ---
 var default_position: Vector3
 var is_hovered: bool = false
 
@@ -20,6 +21,10 @@ func _ready():
 	$Area3D.input_event.connect(_on_input_event)
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
+	# FIX: If the card is already played on the board, ignore all dragging click events!
+	if is_on_board:
+		return
+
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if main_game and main_game.has_node("Camera3D/CardManager"):
 			for existing_card in main_game.get_node("Camera3D/CardManager").get_children():
@@ -30,7 +35,6 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 			is_dragging = true
 			$Area3D.input_ray_pickable = false 
 			
-			# ---> WAKE UP THE FIELD DETECTOR WINDOW <---
 			if main_game and main_game.has_method("activate_field_drop_zone"):
 				main_game.activate_field_drop_zone(true)
 			
@@ -39,13 +43,15 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 				manager.hovered_card_index = -1
 				manager.arrange_hand()
 
-# FIXED: Global input listener catches the mouse release anywhere on the screen!
 func _input(event: InputEvent):
+	# FIX: Skip global release listening if this card isn't the one actively being dragged
+	if is_on_board or !is_dragging:
+		return
+		
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and !event.pressed:
-		if is_dragging:
-			is_dragging = false
-			$Area3D.input_ray_pickable = true
-			_check_field_drop() # Run the drop check instantly!
+		is_dragging = false
+		$Area3D.input_ray_pickable = true
+		_check_field_drop()
 
 func _process(delta):
 	if is_dragging:
@@ -70,7 +76,6 @@ func _cancel_dragging():
 	$Area3D.input_ray_pickable = true
 	is_hovered = false
 	
-	# ---> HIDE THE FIELD DETECTOR AGAIN <---
 	if main_game and main_game.has_method("activate_field_drop_zone"):
 		main_game.activate_field_drop_zone(false)
 	
@@ -95,12 +100,33 @@ func _check_field_drop():
 	if result and result.collider.name == "FieldDropZone":
 		if main_game and main_game.has_method("try_place_pie_on_field"):
 			main_game.try_place_pie_on_field(self)
-			# ---> CLOSE THE ZONE UPON SUCCESSFUL DROP <---
 			if main_game and main_game.has_method("activate_field_drop_zone"):
 				main_game.activate_field_drop_zone(false)
 			return
 			
 	_cancel_dragging()
+
+func _on_mouse_entered():
+	# FIX: Stop hand-hover pop-up animations once played on board
+	if is_on_board or is_dragging or card_info == null or get_parent() == get_node("/root/MainGame"):
+		return
+	is_hovered = true
+	var manager = get_parent()
+	if manager and manager.has_method("arrange_hand"):
+		manager.hovered_card_index = get_index()
+		manager.arrange_hand()
+
+func _on_mouse_exited():
+	if is_on_board or !is_hovered or is_dragging:
+		return
+	is_hovered = false
+	if preview_panel:
+		preview_panel.visible = false
+	var manager = get_parent()
+	if manager and manager.has_method("arrange_hand"):
+		if manager.hovered_card_index == get_index():
+			manager.hovered_card_index = -1
+			manager.arrange_hand()
 
 func load_card_data():
 	var template = $MeshInstance3D/SubViewport/PieTemplate
@@ -144,24 +170,3 @@ func load_card_data():
 			template.get_node("NameHP").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			var raw_text = card_info.passives_and_attacks
 			template.get_node("RichTextLabel").text = "[outline_size=5][outline_color=black][center]" + raw_text + "[/center][/outline_color][/outline_size]"
-
-func _on_mouse_entered():
-	if is_dragging or card_info == null or get_parent() == get_node("/root/MainGame"):
-		return
-	is_hovered = true
-	var manager = get_parent()
-	if manager and manager.has_method("arrange_hand"):
-		manager.hovered_card_index = get_index()
-		manager.arrange_hand()
-
-func _on_mouse_exited():
-	if !is_hovered or is_dragging:
-		return
-	is_hovered = false
-	if preview_panel:
-		preview_panel.visible = false
-	var manager = get_parent()
-	if manager and manager.has_method("arrange_hand"):
-		if manager.hovered_card_index == get_index():
-			manager.hovered_card_index = -1
-			manager.arrange_hand()
