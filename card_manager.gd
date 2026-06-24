@@ -27,18 +27,30 @@ func arrange_hand():
 	var total_width = (card_count - 1) * dynamic_spacing
 	var start_x = -total_width / 2.0
 	
+	# Keep track of how many dragging cards we've skipped so far
+	var active_index_offset = 0
+	
 	for i in range(card_count):
 		var card = cards[i]
+		
+		# --- FIXED: Skip this card entirely if it is currently being dragged ---
+		if "is_dragging" in card and card.is_dragging:
+			active_index_offset += 1
+			continue
+			
+		# Calculate an adjusted grid position index to squeeze out the gaps
+		var adjusted_index = i - active_index_offset
 		
 		var hover_push_offset = 0.0
 		if hovered_card_index != -1 and i != hovered_card_index:
 			var push_direction = 1.0 if i > hovered_card_index else -1.0
 			hover_push_offset = push_direction * 0.22
 			
-		var target_x = start_x + (i * dynamic_spacing) + hover_push_offset
+		# FIXED: Swapped 'i' out for 'adjusted_index' across all vector layouts
+		var target_x = start_x + (adjusted_index * dynamic_spacing) + hover_push_offset
 		var curve_dip = (target_x * target_x) * -0.015
 		var target_y = hand_y_offset + curve_dip
-		var target_z = hand_z_depth + (i * 0.01)
+		var target_z = hand_z_depth + (adjusted_index * 0.01)
 		
 		var target_scale = Vector3(0.75, 0.75, 0.75)
 		

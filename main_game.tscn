@@ -43,6 +43,7 @@ mesh = ExtResource("1_1oj5k")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=2041193723]
 transform = Transform3D(1, 0, 0, 0, 0.6427876, 0.7660444, 0, -0.7660444, 0.6427876, 0, 3.5, 3.2)
+cull_mask = 1047555
 current = true
 
 [node name="CardManager" type="Node3D" parent="Camera3D" unique_id=1979906928]
@@ -97,8 +98,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5003891, 0.08910251, 0.6572
 
 [node name="FieldDropZone" type="Area3D" parent="." unique_id=686373837]
 collision_layer = 2
-collision_mask = 0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="FieldDropZone" unique_id=184883274]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13391113, 0, 1.2411499)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13391113, 0, -1.578707)
 shape = SubResource("BoxShape3D_mf81u")
