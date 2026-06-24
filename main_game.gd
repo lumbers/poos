@@ -92,32 +92,72 @@ func try_place_pie_on_field(card_node: Node3D):
 				print("Placed Pie on Bench Slot ", i + 1)
 				break
 				
-	# 3. IF SUCCESSFUL: Disconnect from hand entirely and animate the game board entry
+	# 3. ANIMATION SEQUENCE
 	if placement_successful:
-		# ---> LOCK STATE CHANGE HERE <---
 		card_node.is_on_board = true
 		
+		# Disconnect card from the hand folder layout completely
 		card_node.get_parent().remove_child(card_node)
-		add_child(card_node)
+		add_child(card_node) # Put into global world space
 		
-		# --- UPDATED FIELD SCALE ---
-		# Bumping this up from 0.55 to 0.85 to make the card roughly 1.5x bigger on the field!
-		var field_scale = Vector3(0.85, 0.85, 0.85)
+		# --- CINEMATIC SETUP VARIABES ---
+		var final_field_scale = Vector3(0.85, 0.85, 0.85)
+		var camera_zoom_scale = Vector3(1.4, 1.4, 1.4) # Giant reveal size
 		
-		# --- POKEMON TCG POCKET STYLE SLAM ---
-		var snap_tween = create_tween().set_parallel(true)
-		snap_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		# Calculate a global position right in front of your camera lens lens
+		# We project 1.5 units forward (-Z) from camera space, and slightly down (-Y)
+		var camera_front_pos = camera_3d.global_transform.origin + camera_3d.global_transform.basis.z * -1.5 + Vector3(0, -0.2, 0)
+		
+		# The card should face perfectly flat toward the camera view during the reveal stage
+		var camera_face_rotation = camera_3d.global_rotation
+		
+		# Create a master serial tween sequence (not parallel!)
+		var show_tween = create_tween()
+		
+		# ==========================================================
+		# STEP 1: FLY UP IN FRONT OF CAMERA & SPIN
+		# ==========================================================
+		# Create a parallel subset block for the first movement phase
+		var fly_up = show_tween.parallel()
+		fly_up.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		
+		# Zoom right to the camera face and get big!
+		fly_up.tween_property(card_node, "global_position", camera_front_pos, 0.4)
+		fly_up.tween_property(card_node, "scale", camera_zoom_scale, 0.4)
+		fly_up.tween_property(card_node, "global_rotation", camera_face_rotation, 0.4)
+		
+		# THE SPIN: Spin 360 degrees around its local Y-axis for visual flare!
+		# We add deg_to_rad(360) onto its current rotation layout
+		var spin_target_y = camera_face_rotation.y + deg_to_rad(360)
+		fly_up.tween_property(card_node, "global_rotation:y", spin_target_y, 0.4)
+		
+		# Hold it there for a tiny micro-second fraction so player can process the card art
+		show_tween.tween_interval(0.1)
+		
+		# ==========================================================
+		# STEP 2: LAUNCH & SLAM INTO THE GRID SLOT
+		# ==========================================================
+		# We chain a fresh parallel block to run IMMEDIATELY after the camera hold finishes
+		var slam_down = show_tween.chain().parallel()
+		
+		# TRANS_BACK creates that crisp overshooting physical impact look!
+		slam_down.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		
 		var final_pos = target_global_position + Vector3(0, 0.02, 0)
 		
-		snap_tween.tween_property(card_node, "global_position", final_pos, 0.25)
-		snap_tween.tween_property(card_node, "global_rotation", Vector3(deg_to_rad(-90), 0, 0), 0.25)
+		# Dive from camera down onto table slot and settle to normal field size
+		slam_down.tween_property(card_node, "global_position", final_pos, 0.35)
+		slam_down.tween_property(card_node, "global_rotation", Vector3(deg_to_rad(-90), 0, 0), 0.35)
+		slam_down.tween_property(card_node, "scale", final_field_scale, 0.35)
 		
+		# Update the hand folder gaps immediately
 		card_manager.arrange_hand()
 		
-		# Keep it clickable so we can target attacks later, but dragging is completely dead!
-		if card_node.has_node("Area3D"):
-			card_node.get_node("Area3D").input_ray_pickable = true
+		# Keep it interactive on the field
+		show_tween.chain().tween_callback(func():
+			if card_node.has_node("Area3D"):
+				card_node.get_node("Area3D").input_ray_pickable = true
+		)
 			
 	else:
 		print("Field is full! Returning card to hand.")
