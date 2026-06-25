@@ -101,11 +101,11 @@ func try_place_pie_on_field(card_node: Node3D):
 		var tween = create_tween()
 		var fly = tween.parallel()
 		fly.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		fly.tween_property(card_node, "global_position", camera_front_pos, 0.35)
-		fly.tween_property(card_node, "global_transform:basis", camera_3d.global_transform.basis, 0.35)
+		fly.tween_property(card_node, "global_position", camera_front_pos, 0.1)
+		fly.tween_property(card_node, "global_transform:basis", camera_3d.global_transform.basis, 0.1)
 
 		# PAUSE: Hold in front of camera
-		tween.chain().tween_interval(0.3)
+		tween.chain().tween_interval(0)
 
 		# STEP 2: Slam down AND turn to flat parallel layout simultaneously
 		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
