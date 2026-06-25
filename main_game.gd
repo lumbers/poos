@@ -96,32 +96,29 @@ func try_place_pie_on_field(card_node: Node3D):
 		var camera_front_pos = camera_3d.global_transform.origin + cam_forward * 1.3
 
 		var field_scale = Vector3(0.85, 0.85, 0.85)
-
-		# Create the main master tween sequence
-		var tween = create_tween()
 		
-		# STEP 1: Fly up in front of camera and align to camera view
+		# STEP 1: Fly up in front of camera, keep current scale
+		var tween = create_tween()
 		var fly = tween.parallel()
 		fly.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		fly.tween_property(card_node, "global_position", camera_front_pos, 0.2)
-		# FIX: This forces the card to match the camera's angle plane cleanly right as it zooms up!
-		fly.tween_property(card_node, "global_transform:basis", camera_3d.global_transform.basis, 0.2)
+		fly.tween_property(card_node, "global_position", camera_front_pos, 0.35)
+		fly.tween_property(card_node, "global_transform:basis", camera_3d.global_transform.basis, 0.35)
 
-		# PAUSE: Hold in front of camera for a split second
-		tween.chain().tween_interval(0.1)
+		# PAUSE: Hold in front of camera
+		tween.chain().tween_interval(0.3)
 
-		# STEP 2: Slam down and flatten to the table at the EXACT same time
+		# STEP 2: Slam down AND turn to flat parallel layout simultaneously
 		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
 		var slam = tween.chain().parallel()
 		
-		# Using TRANS_CUBIC with EASE_OUT makes the descent fast but smooths out 
-		# the landing impact so the rotation and position finish perfectly together
-		slam.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		# Changing to TRANS_QUAD and EASE_IN makes both properties accelerate 
+		# downwards together at high velocity, forcing the spin and drop to blend flawlessly
+		slam.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		
-		# Bind them to identical durations (0.25s) so they transition completely simultaneously
-		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0)
-		slam.tween_property(card_node, "global_position", target_global_position + Vector3(0, 0.02, 0), 0.05)
-		slam.tween_property(card_node, "scale", field_scale, 0.1)
+		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
+		slam.tween_property(card_node, "global_position", target_global_position + Vector3(0, 0.02, 0), 0.22)
+		slam.tween_property(card_node, "scale", field_scale, 0.22)
+
 		card_manager.arrange_hand()
 
 		tween.chain().tween_callback(func():
