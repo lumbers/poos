@@ -91,66 +91,29 @@ func try_place_pie_on_field(card_node: Node3D):
 		card_node.is_on_board = true
 		card_node.get_parent().remove_child(card_node)
 		add_child(card_node)
-		
-		# ── Align card face to camera BEFORE any animation ──
-		card_node.global_transform.basis = camera_3d.global_transform.basis
 
 		var cam_forward = -camera_3d.global_transform.basis.z
-		var cam_down = -camera_3d.global_transform.basis.y
-		var camera_front_pos = camera_3d.global_transform.origin \
-		+ cam_forward * 1.3 
-		+ cam_down * 0.15
+		var camera_front_pos = camera_3d.global_transform.origin + cam_forward * 1.3
 
-		var zoom_scale   = Vector3(1.3, 1.3, 1.3)
-		var field_scale  = Vector3(0.85, 0.85, 0.85)
+		var field_scale = Vector3(0.85, 0.85, 0.85)
 
-		# ── STEP 1: Fly to camera centre ──
+		# STEP 1: Fly up in front of camera, keep current scale
 		var tween = create_tween()
 		var fly = tween.parallel()
 		fly.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		fly.tween_property(card_node, "global_position", camera_front_pos, 0.35)
-		fly.tween_property(card_node, "scale", zoom_scale, 0.35)
 
-		# ── PAUSE: Hold in front of camera before spinning ──
+		# PAUSE: Hold in front of camera
 		tween.chain().tween_interval(0.3)
 
-		# ── STEP 2: Re-orient to camera, THEN capture basis for spin ──
-		var spin_duration = 0.45
-		var start_basis = Basis()
-
-		tween.chain().tween_callback(func():
-			# Card faces camera: -90° X rotated back by camera pitch offset
-			# Camera is -50° X, card mesh origin is -90° X flat
-			# So facing camera = rotate X by +50° from flat = -90+50 = -40° ... 
-			# Simplest: just use the camera basis directly, it works for facing
-			card_node.global_transform.basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-50)))
-			card_node.scale = zoom_scale
-			start_basis = card_node.global_transform.basis
-		)
-
-		tween.chain().tween_method(
-			func(t: float):
-				var angle = -TAU * t
-				var spin_basis = Basis(Vector3.UP, angle)
-				card_node.global_transform.basis = spin_basis * start_basis,
-			0.0, 1.0, spin_duration
-		)
-
-		# Slam: -90° X is the dragging flat orientation, matches card_3d.gd
+		# STEP 2: Slam down to field
 		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
 		var slam = tween.chain().parallel()
 		slam.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.1)
 		slam.tween_property(card_node, "global_position",
-			target_global_position + Vector3(0, 0.02, 0), 0.18)
-		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.18)
-		slam.tween_property(card_node, "scale", field_scale, 0.18)
-
-		# ── STEP 3: Slam down ──
-		slam.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-		slam.tween_property(card_node, "global_position",
-			target_global_position + Vector3(0, 0.02, 0), 0.18)
-		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.18)
-		slam.tween_property(card_node, "scale", field_scale, 0.18)
+			target_global_position + Vector3(0, 0.02, 0), 0.25)
+		slam.tween_property(card_node, "scale", field_scale, 0.25)
 
 		card_manager.arrange_hand()
 
@@ -163,7 +126,6 @@ func try_place_pie_on_field(card_node: Node3D):
 		print("Field is full! Returning card to hand.")
 		if card_node.has_method("_cancel_dragging"):
 			card_node._cancel_dragging()
-			
 # Call this to wake up the field drop zone when a drag starts
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):

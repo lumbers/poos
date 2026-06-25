@@ -63,7 +63,7 @@ card_info = ExtResource("5_2pltu")
 card_info = ExtResource("6_f52ns")
 
 [node name="Card3D" parent="." unique_id=1461637669 instance=ExtResource("2_yx7mw")]
-transform = Transform3D(1, 0, 0, 0, 0.6798126, 0.73338586, 0, -0.73338586, 0.6798126, 2.2339983, 0.629683, -0.23192334)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2339983, 0.629683, -0.23192334)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=433656068]
 
