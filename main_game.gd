@@ -98,7 +98,7 @@ func try_place_pie_on_field(card_node: Node3D):
 		var cam_forward = -camera_3d.global_transform.basis.z
 		var cam_down = -camera_3d.global_transform.basis.y
 		var camera_front_pos = camera_3d.global_transform.origin \
-		+ cam_forward * 1.3 \
+		+ cam_forward * 1.3 
 		+ cam_down * 0.15
 
 		var zoom_scale   = Vector3(1.3, 1.3, 1.3)
