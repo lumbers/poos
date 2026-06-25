@@ -1,7 +1,6 @@
 extends Node3D
 
 var is_dragging: bool = false
-# --- NEW STATE TRACKER ---
 var is_on_board: bool = false 
 
 @onready var main_game = get_node("/root/MainGame")
@@ -9,19 +8,56 @@ var is_on_board: bool = false
 @export var card_info: CardData
 @onready var preview_panel = get_node("/root/MainGame/CanvasLayer/CardPreviewPanel")
 
+# --- NEW HP FLOATING TRACKER NODE ---
+@onready var hp_tracker = $HPTracker
+
 var default_position: Vector3
 var is_hovered: bool = false
+
+# Track the actual dynamic current health of this specific card instance
+var current_hp: int = 0
 
 func _ready():
 	await get_tree().process_frame
 	if card_info != null:
 		load_card_data()
+		# Initialize our health using the card resource base stat
+		current_hp = card_info.max_hp
+		
+	# Start with the floating UI hidden because the card is in the player's hand!
+	if hp_tracker:
+		hp_tracker.visible = false
+		
 	$Area3D.mouse_entered.connect(_on_mouse_entered)
 	$Area3D.mouse_exited.connect(_on_mouse_exited)
 	$Area3D.input_event.connect(_on_input_event)
 
+# --- NEW FUNCTION TO UPDATE AND DISPLAY HEALTH ---
+func update_field_hp_display():
+	if hp_tracker and card_info:
+		# Check if it's a Pie card (since only Pies have HP values)
+		if card_info.card_type.to_lower() == "pie":
+			# Display just the raw current HP number cleanly
+			hp_tracker.text = str(current_hp)
+			# Make it visible only if the card has officially been placed on the board
+			hp_tracker.visible = is_on_board
+		else:
+			hp_tracker.visible = false
+
+# --- NEW FUNCTION TO HANDLE HEALING / DAMAGE OVER TIME ---
+func heal_pie(amount: int):
+	# Because Pies can be over-healed past their starting max_hp baseline,
+	# we simply add directly to the current pool with no upper ceiling clamping!
+	current_hp += amount
+	update_field_hp_display()
+
+func take_damage(amount: int):
+	current_hp -= amount
+	if current_hp < 0:
+		current_hp = 0
+	update_field_hp_display()
+
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
-	# FIX: If the card is already played on the board, ignore all dragging click events!
 	if is_on_board:
 		return
 
@@ -44,7 +80,6 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 				manager.arrange_hand()
 
 func _input(event: InputEvent):
-	# FIX: Skip global release listening if this card isn't the one actively being dragged
 	if is_on_board or !is_dragging:
 		return
 		
@@ -107,7 +142,6 @@ func _check_field_drop():
 	_cancel_dragging()
 
 func _on_mouse_entered():
-	# FIX: Stop hand-hover pop-up animations once played on board
 	if is_on_board or is_dragging or card_info == null or get_parent() == get_node("/root/MainGame"):
 		return
 	is_hovered = true

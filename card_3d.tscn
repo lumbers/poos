@@ -46,3 +46,11 @@ shape = SubResource("BoxShape3D_lg4i1")
 [node name="SleeveMesh" type="MeshInstance3D" parent="." unique_id=1870153407]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.003)
 mesh = SubResource("BoxMesh_wwxca")
+
+[node name="HPTracker" type="Label3D" parent="." unique_id=1406143360]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2744982, 0.022739187, 0.0077100247)
+billboard = 1
+no_depth_test = true
+text = "100
+"
+font_size = 25

@@ -68,9 +68,6 @@ func _add_to_hand_seamlessly(card_node: Node3D):
 			card_node.get_node("Area3D").input_ray_pickable = true
 	)
 
-# ==========================================================
-# 🎯 THE BOARD PLACEMENT LOGIC
-# ==========================================================
 func try_place_pie_on_field(card_node: Node3D):
 	var target_global_position: Vector3 = Vector3.ZERO
 	var placement_successful: bool = false
@@ -121,9 +118,14 @@ func try_place_pie_on_field(card_node: Node3D):
 
 		card_manager.arrange_hand()
 
+		# Update callback to unlock picking AND wake up the Nextbot HP display
 		tween.chain().tween_callback(func():
 			if card_node.has_node("Area3D"):
 				card_node.get_node("Area3D").input_ray_pickable = true
+			
+			# ---> WAKE UP TRACKER HERE <---
+			if card_node.has_method("update_field_hp_display"):
+				card_node.update_field_hp_display()
 		)
 
 	else:
