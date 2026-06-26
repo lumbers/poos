@@ -154,10 +154,13 @@ func _on_mouse_entered():
 	is_hovered = true
 	
 	# --- BATTLEFIELD HOVER INSPECTION OVERLAY ---
-	# If the card is sitting on the board, update and display the UI preview panel on screen!
 	if is_on_board:
-		if preview_panel and preview_panel.has_method("update_preview"):
-			preview_panel.update_preview(card_info)
+		if preview_panel:
+			# Using has_node prevents crashes if the nodes aren't found!
+			if preview_panel.has_node("Art") and card_info.card_art != null:
+				preview_panel.get_node("Art").texture = card_info.card_art
+			if preview_panel.has_node("Description"):
+				preview_panel.get_node("Description").text = card_info.card_name + " - " + card_info.passives_and_attacks
 			preview_panel.visible = true
 		return
 		

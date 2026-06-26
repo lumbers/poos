@@ -17,21 +17,40 @@ extends Node3D
 # --- NEW DISCARD PILE MARKER ---
 @onready var discard_pile_marker = $DiscardPileMarker
 
+# --- NEW UI ONREADY NODES ---
+@onready var actions_label = $UI/HUD/ActionsLabel
+@onready var hand_count_label = $UI/HUD/HandCountLabel
+@onready var end_turn_button = $UI/HUD/EndTurnButton
+@onready var preview_panel = $UI/CardPreviewPanel
+
 var active_slot_card: Node3D = null
 var bench_slot_cards: Array[Node3D] = [null, null, null]
 
 # --- GAMEPLAY SYSTEMS ---
 var max_hand_size: int = 7
-var current_energy: int = 3 # Your actions/energy pool
+var current_energy: int = 3 : 
+	set(value):
+		current_energy = value
+		update_hud_display()
 
 func _ready():
 	get_viewport().physics_object_picking = true
 	deck_3d.deck_clicked.connect(_on_deck_clicked)
+	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	activate_field_drop_zone(false)
+	
+	# Initial HUD layout update
+	update_hud_display()
 	print("Game initialized! Current Actions: ", current_energy)
 
+# --- NEW HUD UPDATER FUNCTION ---
+func update_hud_display():
+	if actions_label:
+		actions_label.text = str(current_energy) + "/3 actions left"
+	if hand_count_label and card_manager:
+		hand_count_label.text = str(card_manager.get_child_count()) + "/7"
+
 func _on_deck_clicked():
-	# Allow drawing past 7 mid-turn! We check actions instead
 	var draw_cost = 1
 	if current_energy < draw_cost:
 		print("Not enough actions left to draw!")
@@ -42,7 +61,6 @@ func _on_deck_clicked():
 		return
 		
 	current_energy -= draw_cost
-	print("Drew a card. Actions left: ", current_energy)
 		
 	var random_data = card_pool.pick_random()
 	var new_card = card_manager.card_scene.instantiate()
@@ -52,6 +70,7 @@ func _on_deck_clicked():
 		new_card.get_node("Area3D").input_ray_pickable = false
 	
 	add_child(new_card)
+	# Kept your custom scaling modifications intact
 	new_card.global_position = deck_3d.global_position + Vector3(0, 0.2, 0)
 	new_card.global_rotation = Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0)
 	
@@ -74,6 +93,7 @@ func _add_to_hand_seamlessly(card_node: Node3D):
 	card_node.scale = Vector3(0.75, 0.75, 0.75)
 	
 	card_manager.arrange_hand()
+	update_hud_display() # Update card count label
 	
 	var collision_timer = create_tween()
 	collision_timer.tween_interval(0.15)
@@ -82,9 +102,6 @@ func _add_to_hand_seamlessly(card_node: Node3D):
 			card_node.get_node("Area3D").input_ray_pickable = true
 	)
 
-# ==========================================================
-# 🎯 REVISED CARD PLACEMENT AND DISCARD pile LOGIC
-# ==========================================================
 func try_place_pie_on_field(card_node: Node3D):
 	var play_cost = 1
 	if current_energy < play_cost:
@@ -98,7 +115,6 @@ func try_place_pie_on_field(card_node: Node3D):
 	var placement_successful: bool = false
 	
 	if is_pie:
-		# Standard Pie placement checking logic
 		if active_slot_card == null:
 			active_slot_card = card_node
 			target_global_position = active_slot_marker.global_position
@@ -111,13 +127,11 @@ func try_place_pie_on_field(card_node: Node3D):
 					placement_successful = true
 					break
 	else:
-		# NON-PIE CARDS (Spells, Items) always succeed and target the Discard Pile!
 		target_global_position = discard_pile_marker.global_position
 		placement_successful = true
 
 	if placement_successful:
 		current_energy -= play_cost
-		print("Action spent! Remaining actions: ", current_energy)
 		
 		card_node.is_on_board = true
 		card_node.get_parent().remove_child(card_node)
@@ -127,7 +141,6 @@ func try_place_pie_on_field(card_node: Node3D):
 		var camera_front_pos = camera_3d.global_transform.origin + cam_forward * 1.3
 		var field_scale = Vector3(0.85, 0.85, 0.85)
 		
-		# STEP 1: Fly up in front of camera lens (LOCKED TIMING)
 		var tween = create_tween()
 		var fly = tween.parallel()
 		fly.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
@@ -136,7 +149,6 @@ func try_place_pie_on_field(card_node: Node3D):
 
 		tween.chain().tween_interval(0)
 
-		# STEP 2: Slam down to destination (Table slot or Discard pile)
 		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
 		var slam = tween.chain().parallel()
 		slam.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -146,6 +158,7 @@ func try_place_pie_on_field(card_node: Node3D):
 		slam.tween_property(card_node, "scale", field_scale, 0.22)
 
 		card_manager.arrange_hand()
+		update_hud_display() # Update card count label
 
 		tween.chain().tween_callback(func():
 			if card_node.has_node("Area3D"):
@@ -155,7 +168,6 @@ func try_place_pie_on_field(card_node: Node3D):
 				if card_node.has_method("update_field_hp_display"):
 					card_node.update_field_hp_display()
 			else:
-				# Non-Pies on board turn off pickable so they don't block table clicks once in discard pile
 				if card_node.has_node("Area3D"):
 					card_node.get_node("Area3D").input_ray_pickable = false
 		)
@@ -164,6 +176,11 @@ func try_place_pie_on_field(card_node: Node3D):
 		print("Field is full! Returning card to hand.")
 		if card_node.has_method("_cancel_dragging"):
 			card_node._cancel_dragging()
+
+func _on_end_turn_pressed():
+	print("End Turn clicked! Readying discard phase if hand size > 7.")
+	# Reset actions back to 3 for testing next turn
+	current_energy = 3
 
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):
