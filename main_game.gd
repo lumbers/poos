@@ -167,12 +167,16 @@ func try_place_pie_on_field(card_node: Node3D):
 		update_hud_display()
 
 		tween.chain().tween_callback(func():
-			if card_node.has_node("Area3D"):
-				card_node.get_node("Area3D").input_ray_pickable = true
 			if is_pie:
-				if card_node.has_method("update_field_hp_display"): card_node.update_field_hp_display()
+				# FORCE the Pie's collision back on so your mouse can see it on the table!
+				if card_node.has_node("Area3D"):
+					card_node.get_node("Area3D").input_ray_pickable = true
+				if card_node.has_method("update_field_hp_display"):
+					card_node.update_field_hp_display()
 			else:
-				if card_node.has_node("Area3D"): card_node.get_node("Area3D").input_ray_pickable = false
+				# Non-Pies in the discard pile turn off so they don't block clicks
+				if card_node.has_node("Area3D"):
+					card_node.get_node("Area3D").input_ray_pickable = false
 		)
 	else:
 		if card_node.has_method("_cancel_dragging"): card_node._cancel_dragging()

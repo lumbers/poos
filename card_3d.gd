@@ -18,19 +18,24 @@ var is_hovered: bool = false
 var current_hp: int = 0
 
 func _ready():
+	# 1. Grab references and wire up signals IMMEDIATELY so no inputs are dropped!
+	main_game = get_node_or_null("/root/MainGame")
+	
+	if has_node("Area3D"):
+		$Area3D.mouse_entered.connect(_on_mouse_entered)
+		$Area3D.mouse_exited.connect(_on_mouse_exited)
+		$Area3D.input_event.connect(_on_input_event)
+		
+	# 2. NOW wait a frame for resources/sub-viewports to cook
 	await get_tree().process_frame
+	
+	# 3. Safely initialize your data structures
 	if card_info != null:
 		load_card_data()
-		# Initialize our health using the card resource base stat
 		current_hp = card_info.max_hp
 		
-	# Start with the floating UI hidden because the card is in the player's hand!
 	if hp_tracker:
 		hp_tracker.visible = false
-		
-	$Area3D.mouse_entered.connect(_on_mouse_entered)
-	$Area3D.mouse_exited.connect(_on_mouse_exited)
-	$Area3D.input_event.connect(_on_input_event)
 
 # --- NEW FUNCTION TO UPDATE AND DISPLAY HEALTH ---
 func update_field_hp_display():
