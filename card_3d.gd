@@ -53,9 +53,16 @@ func heal_pie(amount: int):
 
 func take_damage(amount: int):
 	current_hp -= amount
-	if current_hp < 0:
+	if current_hp <= 0:
 		current_hp = 0
-	update_field_hp_display()
+		update_field_hp_display()
+		
+		# --- TRIGGER CARD DEATH ROUTINE ---
+		# Tell the main game to clean this card up off the board matrix!
+		if main_game and main_game.has_method("handle_pie_death"):
+			main_game.handle_pie_death(self)
+	else:
+		update_field_hp_display()
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
 	if is_on_board and card_info and card_info.card_type.to_lower() != "pie":

@@ -46,7 +46,6 @@ func _ready():
 	deck_3d.deck_clicked.connect(_on_deck_clicked)
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	
-	# Wire up our new discard confirmation button action
 	if confirm_discard_button:
 		confirm_discard_button.pressed.connect(_on_confirm_discard_pressed)
 		
@@ -54,7 +53,9 @@ func _ready():
 		discard_overlay.visible = false
 		
 	activate_field_drop_zone(false)
-	update_hud_display()
+	
+	# FIX: Start the match with the new turn logic to grant the free card!
+	start_new_turn()
 
 func update_hud_display():
 	if actions_label:
@@ -185,15 +186,13 @@ func _on_end_turn_pressed():
 		print("Hand size exceeds limit! Entering Discard Phase.")
 		is_discard_phase = true
 		marked_for_discard.clear()
-		
-		# Show grey overlay AND the discard confirmation button together!
 		if discard_overlay:
 			discard_overlay.visible = true
 		if confirm_discard_button:
 			confirm_discard_button.visible = true
 	else:
-		print("End Turn clean! Resetting actions.")
-		current_energy = 3
+		# FIX: Proceed cleanly to next turn drawing sequence!
+		start_new_turn()
 
 # --- NEW SELECTION CHECKER FOR CARD_3D CLICKS ---
 func toggle_card_discard_selection(card_node: Node3D):
@@ -229,7 +228,6 @@ func _on_confirm_discard_pressed():
 	# Loop through our selection array and fly each one straight to the discard pile mesh!
 	for dead_card in marked_for_discard:
 		if is_instance_valid(dead_card):
-			# FIX: Reset the red highlight tint back to normal white BEFORE moving it!
 			if dead_card.has_method("set_discard_highlight"):
 				dead_card.set_discard_highlight(false)
 				
@@ -242,19 +240,110 @@ func _on_confirm_discard_pressed():
 			burn_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 			
 			var flat_layout = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+			# Define our uniform field target scale layout
+			var target_pile_scale = Vector3(0.85, 0.85, 0.85)
+			
 			burn_tween.tween_property(dead_card, "global_position", discard_pile_marker.global_position + Vector3(0, 0.02, 0), 0.25)
 			burn_tween.tween_property(dead_card, "global_transform:basis", flat_layout, 0.25)
+			# FIX: Force the card to scale down uniformly with everything else in the pile!
+			burn_tween.tween_property(dead_card, "scale", target_pile_scale, 0.25)
 			
 			if dead_card.has_node("Area3D"):
 				dead_card.get_node("Area3D").input_ray_pickable = false
 				
+	# ... (Keep your dead_card loop block exactly the same) ...
 	marked_for_discard.clear()
 	
-	# Re-arrange remaining cards and proceed to next turn!
 	card_manager.arrange_hand()
-	current_energy = 3
-	update_hud_display()
+	
+	# FIX: Proceed cleanly to the next turn after forced cleanup phase finishes!
+	start_new_turn()
 
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):
 		$FieldDropZone/CollisionShape3D.disabled = !should_activate
+
+# Add this new function anywhere in your main_game.gd script:
+func start_new_turn():
+	print("--- STARTING NEW TURN ---")
+	# 1. Reset actions/energy pool back to 3
+	current_energy = 3
+	
+	# 2. TRIGGER THE FREE DRAW:
+	# We duplicate the card drawing block here, but we DO NOT deduct any energy points!
+	if card_pool.is_empty():
+		return
+		
+	var random_data = card_pool.pick_random()
+	var new_card = card_manager.card_scene.instantiate()
+	new_card.card_info = random_data
+	
+	if new_card.has_node("Area3D"):
+		new_card.get_node("Area3D").input_ray_pickable = false
+	
+	add_child(new_card)
+	new_card.global_position = deck_3d.global_position + Vector3(0, 0.2, 0)
+	new_card.global_rotation = Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0)
+	
+	var fly_past_target = deck_3d.global_position + Vector3(0, 0.2, 2.5)
+	var fly_tween = create_tween().set_parallel(true)
+	fly_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	
+	fly_tween.tween_property(new_card, "global_position", fly_past_target, 0.1)
+	fly_tween.tween_property(new_card, "global_rotation", Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0), 0.3)
+	
+	fly_tween.chain().tween_callback(_add_to_hand_seamlessly.bind(new_card))
+	
+	# 3. Refresh HUD UI display counters
+	update_hud_display()
+	
+	# ==========================================================
+# 💀 BATTLEFIELD PIE DEATH REAPER LOGIC
+# ==========================================================
+func handle_pie_death(card_node: Node3D):
+	
+	print("Pie has fainted! Sweeping: ", card_node.card_info.card_name)
+	
+	# 1. Clear the reference tracker array slots so the space opens back up
+	if active_slot_card == card_node:
+		active_slot_card = null
+		print("Active Slot cleared.")
+	else:
+		for i in range(bench_slot_cards.size()):
+			if bench_slot_cards[i] == card_node:
+				bench_slot_cards[i] = null
+				print("Bench Slot ", (i + 1), " cleared.")
+				break
+				
+	# 2. Shut off its floating Nextbot HP display tracker completely
+	if card_node.has_node("HPTracker"):
+		card_node.get_node("HPTracker").visible = false
+		
+	# 3. Disallow any further mouse interactions on the table
+	if card_node.has_node("Area3D"):
+		card_node.get_node("Area3D").input_ray_pickable = false
+		
+	# 4. Play a smooth burial tween sliding it down into the discard pile marker
+	var death_tween = create_tween().set_parallel(true)
+	death_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	
+	var flat_layout = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+	var target_pile_scale = Vector3(0.85, 0.85, 0.85) # Keeping your locked uniform scale!
+	
+	death_tween.tween_property(card_node, "global_position", discard_pile_marker.global_position + Vector3(0, 0.04, 0), 0.35)
+	death_tween.tween_property(card_node, "global_transform:basis", flat_layout, 0.35)
+	death_tween.tween_property(card_node, "scale", target_pile_scale, 0.35)
+
+# --- CHANGE THIS FUNCTION NAME TO _input ---
+func _input(event: InputEvent):
+	# Test Damage: Pressing "ENTER" will hit your Active Pie for 20 damage!
+	if event.is_action_pressed("ui_accept"): # UI_ACCEPT is the Enter/Return key
+		if active_slot_card != null and active_slot_card.has_method("take_damage"):
+			print("Debug: Attacking Active Pie for 20 damage!")
+			active_slot_card.take_damage(20)
+			
+	# Test Healing: Pressing "H" will heal your Active Pie for 15 health!
+	if event is InputEventKey and event.pressed and event.keycode == KEY_H:
+		if active_slot_card != null and active_slot_card.has_method("heal_pie"):
+			print("Debug: Healing Active Pie for 15 HP!")
+			active_slot_card.heal_pie(15)
