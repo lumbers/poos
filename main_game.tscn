@@ -62,6 +62,9 @@ card_info = ExtResource("5_2pltu")
 [node name="Card3D7" parent="Camera3D/CardManager" unique_id=701594680 instance=ExtResource("2_yx7mw")]
 card_info = ExtResource("6_f52ns")
 
+[node name="InspectAnchor" type="Marker3D" parent="Camera3D" unique_id=446256214]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.986809, 0.08800292, -1.4416652)
+
 [node name="Card3D" parent="." unique_id=1461637669 instance=ExtResource("2_yx7mw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2339983, 0.629683, -0.23192334)
 

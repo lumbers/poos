@@ -70,13 +70,19 @@ func take_damage(amount: int):
 		update_field_hp_display()
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
+	# --- NEW: HOVER FIX FOR FIELD CARDS ---
+	# If the mouse moves over the card on the field, manually trigger the preview panel!
+	if is_on_board and event is InputEventMouseMotion:
+		if main_game and main_game.get("is_discard_phase") == false:
+			is_hovered = true
+			_on_mouse_entered() # Manually call your preview display code!
+
 	if is_on_board and card_info and card_info.card_type.to_lower() != "pie":
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		# FIX: If we are in the discard phase, click maps to selection instead of dragging!
 		if main_game and main_game.get("is_discard_phase") == true:
-			if not is_on_board: # Can only discard from hand!
+			if not is_on_board: 
 				main_game.toggle_card_discard_selection(self)
 			return
 
@@ -174,6 +180,8 @@ func _check_field_drop():
 	_cancel_dragging()
 
 func _on_mouse_entered():
+	# --- BLOCK DURING DRAG OR PLACEMENT ANIMATION ---
+	# If the card is being dragged, or it's flying to the board, don't show the preview!
 	if is_dragging or card_info == null:
 		return
 		
@@ -181,20 +189,18 @@ func _on_mouse_entered():
 	
 	# --- BATTLEFIELD HOVER INSPECTION OVERLAY ---
 	if is_on_board:
-		if preview_panel:
-			# Using has_node prevents crashes if the nodes aren't found!
-			if preview_panel.has_node("Art") and card_info.card_art != null:
-				preview_panel.get_node("Art").texture = card_info.card_art
-			if preview_panel.has_node("Description"):
-				preview_panel.get_node("Description").text = card_info.card_name + " - " + card_info.passives_and_attacks
-			preview_panel.visible = true
+		# EXTRA CHECK: If the card is still animating down to the table, abort!
+		# This ensures it doesn't pop up until the card is fully resting on the board.
+		if main_game and main_game.has_method("show_3d_card_preview"):
+			main_game.show_3d_card_preview(card_info)
 		return
 		
-	# Standard hand layout hovering alignment
+	# --- Standard hand layout hovering alignment ---
 	var manager = get_parent()
 	if manager and manager.has_method("arrange_hand"):
 		manager.hovered_card_index = get_index()
 		manager.arrange_hand()
+
 
 func _on_mouse_exited():
 	if !is_hovered or is_dragging:
@@ -202,13 +208,17 @@ func _on_mouse_exited():
 		
 	is_hovered = false
 	
-	# Hide the inspection overlay panel as soon as the mouse pulls away
+	# --- BATTLEFIELD LEAVE TRIGGER (NEW 3D REMOVAL) ---
+	if is_on_board:
+		if main_game and main_game.has_method("hide_3d_card_preview"):
+			main_game.hide_3d_card_preview()
+		return # Stop here so it doesn't look for the Hand Manager!
+		
+	# --- Hide the old inspection overlay panel if it was used anywhere else ---
 	if preview_panel:
 		preview_panel.visible = false
 		
-	if is_on_board:
-		return
-		
+	# --- Standard hand layout leaving alignment (STAYS EXACTLY THE SAME) ---
 	var manager = get_parent()
 	if manager and manager.has_method("arrange_hand"):
 		if manager.hovered_card_index == get_index():

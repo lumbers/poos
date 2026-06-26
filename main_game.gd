@@ -30,6 +30,9 @@ extends Node3D
 var active_slot_card: Node3D = null
 var bench_slot_cards: Array[Node3D] = [null, null, null]
 
+# Inside main_game.gd near your other array trackers:
+var discard_graveyard_pool: Array[Node3D] = []
+
 # --- GAMEPLAY SYSTEMS ---
 var max_hand_size: int = 7
 var current_energy: int = 3 : 
@@ -166,17 +169,19 @@ func try_place_pie_on_field(card_node: Node3D):
 		card_manager.arrange_hand()
 		update_hud_display()
 
+		# Inside your main_game.gd placement logic:
+# Move 'dead_card.is_on_board = true' inside the final callback so hover ignores it mid-air!
+
 		tween.chain().tween_callback(func():
-			if is_pie:
-				# FORCE the Pie's collision back on so your mouse can see it on the table!
+			card_node.is_on_board = true
+			if not is_pie:
+				discard_graveyard_pool.append(card_node)
+				update_graveyard_mouse_priorities()
+			else:
 				if card_node.has_node("Area3D"):
 					card_node.get_node("Area3D").input_ray_pickable = true
 				if card_node.has_method("update_field_hp_display"):
 					card_node.update_field_hp_display()
-			else:
-				# Non-Pies in the discard pile turn off so they don't block clicks
-				if card_node.has_node("Area3D"):
-					card_node.get_node("Area3D").input_ray_pickable = false
 		)
 	else:
 		if card_node.has_method("_cancel_dragging"): card_node._cancel_dragging()
@@ -230,32 +235,39 @@ func _on_confirm_discard_pressed():
 		confirm_discard_button.visible = false
 		
 	# Loop through our selection array and fly each one straight to the discard pile mesh!
+	# Inside your _on_confirm_discard_pressed() function dead_card loop:
+	# Update this loop block inside your _on_confirm_discard_pressed() function:
 	for dead_card in marked_for_discard:
 		if is_instance_valid(dead_card):
 			if dead_card.has_method("set_discard_highlight"):
 				dead_card.set_discard_highlight(false)
 				
-			# Remove from card hand organizer hierarchy
 			dead_card.get_parent().remove_child(dead_card)
 			add_child(dead_card)
 			dead_card.is_on_board = true
+			
+			discard_graveyard_pool.append(dead_card)
+			
+			# FIX 1: Set a distinct +0.1 vertical lift per card in the stack!
+			var height_offset = Vector3(0, 0.021 * discard_graveyard_pool.size(), 0)
+			var target_destination = discard_pile_marker.global_position
 			
 			var burn_tween = create_tween().set_parallel(true)
 			burn_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 			
 			var flat_layout = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
-			# Define our uniform field target scale layout
 			var target_pile_scale = Vector3(0.85, 0.85, 0.85)
 			
-			burn_tween.tween_property(dead_card, "global_position", discard_pile_marker.global_position + Vector3(0, 0.02, 0), 0.25)
+			burn_tween.tween_property(dead_card, "global_position", target_destination, 0.25)
 			burn_tween.tween_property(dead_card, "global_transform:basis", flat_layout, 0.25)
-			# FIX: Force the card to scale down uniformly with everything else in the pile!
 			burn_tween.tween_property(dead_card, "scale", target_pile_scale, 0.25)
 			
+			# FIX 2: KEEP input pickable enabled so the mouse raycast can see it!
 			if dead_card.has_node("Area3D"):
-				dead_card.get_node("Area3D").input_ray_pickable = false
+				dead_card.get_node("Area3D").input_ray_pickable = true
 				
-	# ... (Keep your dead_card loop block exactly the same) ...
+	# After adding the cards, update which card is allowed to be hovered
+	update_graveyard_mouse_priorities()
 	marked_for_discard.clear()
 	
 	card_manager.arrange_hand()
@@ -305,39 +317,41 @@ func start_new_turn():
 # 💀 BATTLEFIELD PIE DEATH REAPER LOGIC
 # ==========================================================
 func handle_pie_death(card_node: Node3D):
-	
 	print("Pie has fainted! Sweeping: ", card_node.card_info.card_name)
 	
-	# 1. Clear the reference tracker array slots so the space opens back up
 	if active_slot_card == card_node:
 		active_slot_card = null
-		print("Active Slot cleared.")
 	else:
 		for i in range(bench_slot_cards.size()):
 			if bench_slot_cards[i] == card_node:
 				bench_slot_cards[i] = null
-				print("Bench Slot ", (i + 1), " cleared.")
 				break
 				
-	# 2. Shut off its floating Nextbot HP display tracker completely
 	if card_node.has_node("HPTracker"):
 		card_node.get_node("HPTracker").visible = false
 		
-	# 3. Disallow any further mouse interactions on the table
-	if card_node.has_node("Area3D"):
-		card_node.get_node("Area3D").input_ray_pickable = false
-		
-	# 4. Play a smooth burial tween sliding it down into the discard pile marker
+	# Add the card to the pool immediately
+	discard_graveyard_pool.append(card_node)
+	
 	var death_tween = create_tween().set_parallel(true)
 	death_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	
 	var flat_layout = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
-	var target_pile_scale = Vector3(0.85, 0.85, 0.85) # Keeping your locked uniform scale!
+	var target_pile_scale = Vector3(0.85, 0.85, 0.85)
 	
-	death_tween.tween_property(card_node, "global_position", discard_pile_marker.global_position + Vector3(0, 0.04, 0), 0.35)
+	# Send it flat to the baseline destination marker
+	death_tween.tween_property(card_node, "global_position", discard_pile_marker.global_position, 0.35)
 	death_tween.tween_property(card_node, "global_transform:basis", flat_layout, 0.35)
 	death_tween.tween_property(card_node, "scale", target_pile_scale, 0.35)
-
+	
+	# CRITICAL FIX: Wait for the tween flight to completely finish, THEN run priorities!
+	death_tween.chain().tween_callback(func():
+		discard_graveyard_pool.append(card_node)  # Append AFTER landing
+		update_graveyard_mouse_priorities()        # THEN reorder
+		if card_node.has_node("Area3D"):
+			card_node.get_node("Area3D").input_ray_pickable = true
+	)
+	
 # --- CHANGE THIS FUNCTION NAME TO _input ---
 func _input(event: InputEvent):
 	# Test Damage: Pressing "ENTER" will hit your Active Pie for 20 damage!
@@ -351,3 +365,64 @@ func _input(event: InputEvent):
 		if active_slot_card != null and active_slot_card.has_method("heal_pie"):
 			print("Debug: Healing Active Pie for 15 HP!")
 			active_slot_card.heal_pie(15)
+
+# ==========================================================
+# 🔍 3D IN-GAME HOVER CARD INSPECTION SYSTEM
+# ==========================================================
+@onready var inspect_anchor = $Camera3D/InspectAnchor
+var current_3d_preview: Node3D = null
+
+func show_3d_card_preview(source_card_info: CardData):
+	# If a preview is already showing, get rid of it first
+	hide_3d_card_preview()
+	
+	if source_card_info == null or inspect_anchor == null:
+		return
+		
+	# Instantiate a brand new duplicate of your 3D card scene
+	var card_scene_path = load("res://card_3d.tscn") # Adjust path if yours is named differently!
+	var preview_instance = card_scene_path.instantiate()
+	
+	# Assign the exact resource data so the art/text matches perfectly!
+	preview_instance.card_info = source_card_info
+	
+	# Attach it right onto our camera's anchor point
+	inspect_anchor.add_child(preview_instance)
+	current_3d_preview = preview_instance
+	
+	# CRITICAL SAFETY: Turn off its collisions so it acts like a complete ghost!
+	# This stops it from intercepting mouse clicks or breaking hand arrangements.
+	if preview_instance.has_node("Area3D"):
+		preview_instance.get_node("Area3D").input_ray_pickable = false
+		
+	# Force its on-field Nextbot HP display to remain invisible up close
+	if preview_instance.has_node("HPTracker"):
+		preview_instance.get_node("HPTracker").visible = false
+
+func hide_3d_card_preview():
+	if is_instance_valid(current_3d_preview):
+		current_3d_preview.queue_free()
+	current_3d_preview = null
+	
+func update_graveyard_mouse_priorities():
+	if discard_graveyard_pool.is_empty():
+		return
+		
+	var spacing = 0.005  # Very thin gap so cards don't z-fight but stay basically flat
+	var top_index = discard_graveyard_pool.size() - 1
+	
+	for i in range(discard_graveyard_pool.size()):
+		var card = discard_graveyard_pool[i]
+		if not is_instance_valid(card):
+			continue
+			
+		# Newest card (highest index) sits at the marker, older cards sink below
+		var depth = top_index - i
+		var target_pos = discard_pile_marker.global_position + Vector3(0, -spacing * depth, 0)
+		
+		var shift_tween = create_tween()
+		shift_tween.tween_property(card, "global_position", target_pos, 0.2)
+		
+		# Only the top card gets mouse interaction
+		if card.has_node("Area3D"):
+			card.get_node("Area3D").input_ray_pickable = (i == top_index)
