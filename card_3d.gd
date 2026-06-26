@@ -58,26 +58,32 @@ func take_damage(amount: int):
 	update_field_hp_display()
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
-	if is_on_board:
+	# Skip interactions if the card has already been sent to the discard pile or locked
+	if is_on_board and card_info and card_info.card_type.to_lower() != "pie":
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		# If it's on the board (must be a Pie), we can track target attacks later instead of dragging
+		if is_on_board:
+			print("Clicked a Pie on the battlefield: ", card_info.card_name)
+			return
+
 		if main_game and main_game.has_node("Camera3D/CardManager"):
 			for existing_card in main_game.get_node("Camera3D/CardManager").get_children():
 				if existing_card.get("is_dragging") == true:
 					return
 
-		if card_info and card_info.card_type.to_lower() == "pie":
-			is_dragging = true
-			$Area3D.input_ray_pickable = false 
-			
-			if main_game and main_game.has_method("activate_field_drop_zone"):
-				main_game.activate_field_drop_zone(true)
-			
-			var manager = get_parent()
-			if manager and manager.has_method("arrange_hand"):
-				manager.hovered_card_index = -1
-				manager.arrange_hand()
+		# FIX: All card types (Pies, Spells, Items) can now be dragged!
+		is_dragging = true
+		$Area3D.input_ray_pickable = false 
+		
+		if main_game and main_game.has_method("activate_field_drop_zone"):
+			main_game.activate_field_drop_zone(true)
+		
+		var manager = get_parent()
+		if manager and manager.has_method("arrange_hand"):
+			manager.hovered_card_index = -1
+			manager.arrange_hand()
 
 func _input(event: InputEvent):
 	if is_on_board or !is_dragging:
@@ -142,20 +148,38 @@ func _check_field_drop():
 	_cancel_dragging()
 
 func _on_mouse_entered():
-	if is_on_board or is_dragging or card_info == null or get_parent() == get_node("/root/MainGame"):
+	if is_dragging or card_info == null:
 		return
+		
 	is_hovered = true
+	
+	# --- BATTLEFIELD HOVER INSPECTION OVERLAY ---
+	# If the card is sitting on the board, update and display the UI preview panel on screen!
+	if is_on_board:
+		if preview_panel and preview_panel.has_method("update_preview"):
+			preview_panel.update_preview(card_info)
+			preview_panel.visible = true
+		return
+		
+	# Standard hand layout hovering alignment
 	var manager = get_parent()
 	if manager and manager.has_method("arrange_hand"):
 		manager.hovered_card_index = get_index()
 		manager.arrange_hand()
 
 func _on_mouse_exited():
-	if is_on_board or !is_hovered or is_dragging:
+	if !is_hovered or is_dragging:
 		return
+		
 	is_hovered = false
+	
+	# Hide the inspection overlay panel as soon as the mouse pulls away
 	if preview_panel:
 		preview_panel.visible = false
+		
+	if is_on_board:
+		return
+		
 	var manager = get_parent()
 	if manager and manager.has_method("arrange_hand"):
 		if manager.hovered_card_index == get_index():

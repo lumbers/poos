@@ -34,7 +34,7 @@ func _on_mouse_entered():
 	
 	var tween = create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "scale", Vector3(1.1, 1.1, 1.1), 0.1)
+	tween.tween_property(self, "scale", Vector3(2.1, 2.1, 2.1), 0.1)
 
 func _on_mouse_exited():
 	if active_mesh:
@@ -42,7 +42,7 @@ func _on_mouse_exited():
 	
 	var tween = create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "scale", Vector3(1.0, 1.0, 1.0), 0.1)
+	tween.tween_property(self, "scale", Vector3(2.0, 2.0, 2.0), 0.1)
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
