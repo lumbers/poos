@@ -58,12 +58,16 @@ func take_damage(amount: int):
 	update_field_hp_display()
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
-	# Skip interactions if the card has already been sent to the discard pile or locked
 	if is_on_board and card_info and card_info.card_type.to_lower() != "pie":
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		# If it's on the board (must be a Pie), we can track target attacks later instead of dragging
+		# FIX: If we are in the discard phase, click maps to selection instead of dragging!
+		if main_game and main_game.get("is_discard_phase") == true:
+			if not is_on_board: # Can only discard from hand!
+				main_game.toggle_card_discard_selection(self)
+			return
+
 		if is_on_board:
 			print("Clicked a Pie on the battlefield: ", card_info.card_name)
 			return
@@ -73,7 +77,6 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 				if existing_card.get("is_dragging") == true:
 					return
 
-		# FIX: All card types (Pies, Spells, Items) can now be dragged!
 		is_dragging = true
 		$Area3D.input_ray_pickable = false 
 		
@@ -84,6 +87,17 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 		if manager and manager.has_method("arrange_hand"):
 			manager.hovered_card_index = -1
 			manager.arrange_hand()
+
+# --- NEW VISUAL RED HIGHLIGHT DISCARD FEEDBACK FUNCTION ---
+func set_discard_highlight(should_highlight: bool):
+	var template = $MeshInstance3D/SubViewport/PieTemplate
+	if template:
+		if should_highlight:
+			# Tint the 2D template background red to act as a prominent selection highlight outline!
+			template.modulate = Color(1.0, 0.4, 0.4, 1.0)
+		else:
+			# Reset texture back to standard white daylight clear illumination
+			template.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 func _input(event: InputEvent):
 	if is_on_board or !is_dragging:

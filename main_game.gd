@@ -14,14 +14,18 @@ extends Node3D
 	$BoardSlots/BenchSlot3
 ]
 
-# --- NEW DISCARD PILE MARKER ---
+# --- DISCARD PILE ---
 @onready var discard_pile_marker = $DiscardPileMarker
 
-# --- NEW UI ONREADY NODES ---
+# --- UI NODES ---
 @onready var actions_label = $UI/HUD/ActionsLabel
 @onready var hand_count_label = $UI/HUD/HandCountLabel
 @onready var end_turn_button = $UI/HUD/EndTurnButton
 @onready var preview_panel = $UI/CardPreviewPanel
+
+# --- NEW DISCARD PHASE UI HOOKUPS ---
+@onready var discard_overlay = $UI/DiscardOverlay
+@onready var confirm_discard_button = $UI/ConfirmDiscardButton
 
 var active_slot_card: Node3D = null
 var bench_slot_cards: Array[Node3D] = [null, null, null]
@@ -33,17 +37,25 @@ var current_energy: int = 3 :
 		current_energy = value
 		update_hud_display()
 
+# --- NEW STATE TRACKERS ---
+var is_discard_phase: bool = false
+var marked_for_discard: Array[Node3D] = []
+
 func _ready():
 	get_viewport().physics_object_picking = true
 	deck_3d.deck_clicked.connect(_on_deck_clicked)
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
-	activate_field_drop_zone(false)
 	
-	# Initial HUD layout update
+	# Wire up our new discard confirmation button action
+	if confirm_discard_button:
+		confirm_discard_button.pressed.connect(_on_confirm_discard_pressed)
+		
+	if discard_overlay:
+		discard_overlay.visible = false
+		
+	activate_field_drop_zone(false)
 	update_hud_display()
-	print("Game initialized! Current Actions: ", current_energy)
 
-# --- NEW HUD UPDATER FUNCTION ---
 func update_hud_display():
 	if actions_label:
 		actions_label.text = str(current_energy) + "/3 actions left"
@@ -51,17 +63,16 @@ func update_hud_display():
 		hand_count_label.text = str(card_manager.get_child_count()) + "/7"
 
 func _on_deck_clicked():
+	if is_discard_phase: return # Block drawing while forced to discard!
+	
 	var draw_cost = 1
 	if current_energy < draw_cost:
 		print("Not enough actions left to draw!")
 		return
 		
-	if card_pool.is_empty():
-		print("Warning: Your Card Pool array is empty in the Inspector!")
-		return
+	if card_pool.is_empty(): return
 		
 	current_energy -= draw_cost
-		
 	var random_data = card_pool.pick_random()
 	var new_card = card_manager.card_scene.instantiate()
 	new_card.card_info = random_data
@@ -70,7 +81,6 @@ func _on_deck_clicked():
 		new_card.get_node("Area3D").input_ray_pickable = false
 	
 	add_child(new_card)
-	# Kept your custom scaling modifications intact
 	new_card.global_position = deck_3d.global_position + Vector3(0, 0.2, 0)
 	new_card.global_rotation = Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0)
 	
@@ -78,22 +88,19 @@ func _on_deck_clicked():
 	var fly_tween = create_tween().set_parallel(true)
 	fly_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	
-	var face_floor_rotation = Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0)
-	
 	fly_tween.tween_property(new_card, "global_position", fly_past_target, 0.1)
-	fly_tween.tween_property(new_card, "global_rotation", face_floor_rotation, 0.3)
+	fly_tween.tween_property(new_card, "global_rotation", Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0), 0.3)
 	
 	fly_tween.chain().tween_callback(_add_to_hand_seamlessly.bind(new_card))
 	
 func _add_to_hand_seamlessly(card_node: Node3D):
 	card_node.get_parent().remove_child(card_node)
 	card_manager.add_child(card_node)
-	
 	card_node.rotation = Vector3.ZERO
 	card_node.scale = Vector3(0.75, 0.75, 0.75)
 	
 	card_manager.arrange_hand()
-	update_hud_display() # Update card count label
+	update_hud_display()
 	
 	var collision_timer = create_tween()
 	collision_timer.tween_interval(0.15)
@@ -103,11 +110,11 @@ func _add_to_hand_seamlessly(card_node: Node3D):
 	)
 
 func try_place_pie_on_field(card_node: Node3D):
+	if is_discard_phase: return # Block playing cards during discard phase
+	
 	var play_cost = 1
 	if current_energy < play_cost:
-		print("Not enough actions! Requires ", play_cost, " (You have: ", current_energy, ")")
-		if card_node.has_method("_cancel_dragging"):
-			card_node._cancel_dragging()
+		if card_node.has_method("_cancel_dragging"): card_node._cancel_dragging()
 		return
 
 	var is_pie = card_node.card_info and card_node.card_info.card_type.to_lower() == "pie"
@@ -132,7 +139,6 @@ func try_place_pie_on_field(card_node: Node3D):
 
 	if placement_successful:
 		current_energy -= play_cost
-		
 		card_node.is_on_board = true
 		card_node.get_parent().remove_child(card_node)
 		add_child(card_node)
@@ -152,35 +158,102 @@ func try_place_pie_on_field(card_node: Node3D):
 		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
 		var slam = tween.chain().parallel()
 		slam.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		
 		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
 		slam.tween_property(card_node, "global_position", target_global_position + Vector3(0, 0.02, 0), 0.22)
 		slam.tween_property(card_node, "scale", field_scale, 0.22)
 
 		card_manager.arrange_hand()
-		update_hud_display() # Update card count label
+		update_hud_display()
 
 		tween.chain().tween_callback(func():
 			if card_node.has_node("Area3D"):
 				card_node.get_node("Area3D").input_ray_pickable = true
-			
 			if is_pie:
-				if card_node.has_method("update_field_hp_display"):
-					card_node.update_field_hp_display()
+				if card_node.has_method("update_field_hp_display"): card_node.update_field_hp_display()
 			else:
-				if card_node.has_node("Area3D"):
-					card_node.get_node("Area3D").input_ray_pickable = false
+				if card_node.has_node("Area3D"): card_node.get_node("Area3D").input_ray_pickable = false
 		)
-
 	else:
-		print("Field is full! Returning card to hand.")
-		if card_node.has_method("_cancel_dragging"):
-			card_node._cancel_dragging()
+		if card_node.has_method("_cancel_dragging"): card_node._cancel_dragging()
 
+# --- REVISED END TURN BUTTON CLICKED ---
+# Find your _on_end_turn_pressed() function and update it to this:
 func _on_end_turn_pressed():
-	print("End Turn clicked! Readying discard phase if hand size > 7.")
-	# Reset actions back to 3 for testing next turn
+	var hand_count = card_manager.get_child_count()
+	
+	if hand_count > max_hand_size:
+		print("Hand size exceeds limit! Entering Discard Phase.")
+		is_discard_phase = true
+		marked_for_discard.clear()
+		
+		# Show grey overlay AND the discard confirmation button together!
+		if discard_overlay:
+			discard_overlay.visible = true
+		if confirm_discard_button:
+			confirm_discard_button.visible = true
+	else:
+		print("End Turn clean! Resetting actions.")
+		current_energy = 3
+
+# --- NEW SELECTION CHECKER FOR CARD_3D CLICKS ---
+func toggle_card_discard_selection(card_node: Node3D):
+	if not is_discard_phase: return
+	
+	if marked_for_discard.has(card_node):
+		marked_for_discard.erase(card_node)
+		if card_node.has_method("set_discard_highlight"):
+			card_node.set_discard_highlight(false)
+	else:
+		marked_for_discard.append(card_node)
+		if card_node.has_method("set_discard_highlight"):
+			card_node.set_discard_highlight(true)
+
+# --- NEW CONFIRM SELECTION BURNING ANIMATION ---
+func _on_confirm_discard_pressed():
+	var current_hand_count = card_manager.get_child_count()
+	var final_calculated_count = current_hand_count - marked_for_discard.size()
+	
+	if final_calculated_count > max_hand_size:
+		print("You still have too many cards! Must discard down to 7.")
+		return
+		
+	print("Processing burning selection...")
+	is_discard_phase = false
+	
+	# Hide BOTH the overlay and the button now!
+	if discard_overlay:
+		discard_overlay.visible = false
+	if confirm_discard_button:
+		confirm_discard_button.visible = false
+		
+	# Loop through our selection array and fly each one straight to the discard pile mesh!
+	for dead_card in marked_for_discard:
+		if is_instance_valid(dead_card):
+			# FIX: Reset the red highlight tint back to normal white BEFORE moving it!
+			if dead_card.has_method("set_discard_highlight"):
+				dead_card.set_discard_highlight(false)
+				
+			# Remove from card hand organizer hierarchy
+			dead_card.get_parent().remove_child(dead_card)
+			add_child(dead_card)
+			dead_card.is_on_board = true
+			
+			var burn_tween = create_tween().set_parallel(true)
+			burn_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			
+			var flat_layout = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+			burn_tween.tween_property(dead_card, "global_position", discard_pile_marker.global_position + Vector3(0, 0.02, 0), 0.25)
+			burn_tween.tween_property(dead_card, "global_transform:basis", flat_layout, 0.25)
+			
+			if dead_card.has_node("Area3D"):
+				dead_card.get_node("Area3D").input_ray_pickable = false
+				
+	marked_for_discard.clear()
+	
+	# Re-arrange remaining cards and proceed to next turn!
+	card_manager.arrange_hand()
 	current_energy = 3
+	update_hud_display()
 
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):

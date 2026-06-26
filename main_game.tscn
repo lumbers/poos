@@ -125,6 +125,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.033, 0.051374882, 1.775)
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1079242632]
 
+[node name="DiscardOverlay" type="ColorRect" parent="UI" unique_id=1955624780]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.27395758, 0.27395758, 0.27395758, 0.1)
+
+[node name="DiscardInstructionLabel" type="Label" parent="UI/DiscardOverlay" unique_id=1779858958]
+layout_mode = 0
+offset_left = 621.0
+offset_top = 71.0
+offset_right = 1284.0
+offset_bottom = 116.0
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 32
+text = "discard until you have 7 cards in your hand"
+
 [node name="HUD" type="Control" parent="UI" unique_id=880767974]
 layout_mode = 3
 anchors_preset = 15
@@ -171,6 +191,21 @@ offset_right = -0.92004395
 theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 32
 text = "end turn"
+
+[node name="ConfirmDiscardButton" type="Button" parent="UI" unique_id=1253456435]
+visible = false
+anchors_preset = -1
+anchor_left = 0.018000001
+anchor_top = 0.846
+anchor_right = 0.177
+anchor_bottom = 0.90900004
+offset_left = -0.5600014
+offset_top = 0.32000732
+offset_right = -0.83999634
+offset_bottom = 0.27996826
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 32
+text = "discard cards"
 
 [node name="CardPreviewPanel" type="Panel" parent="UI" unique_id=390808940]
 visible = false
