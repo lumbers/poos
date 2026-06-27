@@ -70,7 +70,6 @@ func take_damage(amount: int):
 		update_field_hp_display()
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
-	# --- HOVER FIX FOR FIELD CARDS ---
 	if is_on_board and event is InputEventMouseMotion:
 		if main_game and main_game.get("is_discard_phase") == false:
 			is_hovered = true
@@ -80,6 +79,7 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		print("CLICK DETECTED on: ", card_info.card_name, " | is_on_board: ", is_on_board)  # ADD THIS
 		if main_game and main_game.get("is_discard_phase") == true:
 			if not is_on_board: 
 				main_game.toggle_card_discard_selection(self)
@@ -92,20 +92,24 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 		if main_game and main_game.has_node("Camera3D/CardManager"):
 			for existing_card in main_game.get_node("Camera3D/CardManager").get_children():
 				if existing_card.get("is_dragging") == true:
+					print("BLOCKED: another card is dragging")  # ADD THIS
 					return
 
 		is_dragging = true
+		print("DRAG STARTED")  # ADD THIS
 		$Area3D.input_ray_pickable = false 
 
-		# --- FIXED: FORCE A PURE BOOLEAN CHECK ---
 		var check_is_pie: bool = false
 		if card_info and card_info.get("card_type") != null:
 			if card_info.card_type.to_lower() == "pie":
 				check_is_pie = true
 
-		# Tell the main game manager to display our target blueprint fields safely!
 		if main_game and main_game.has_method("set_ghost_slots_visible"):
 			main_game.set_ghost_slots_visible(true, check_is_pie)
+			
+		# Always activate the drop zone so non-pie cards can still be placed
+		if main_game and main_game.has_method("activate_field_drop_zone"):
+			main_game.activate_field_drop_zone(true)
 			
 		var manager = get_parent()
 		if manager and manager.has_method("arrange_hand"):
@@ -130,34 +134,56 @@ func _input(event: InputEvent):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and !event.pressed:
 		is_dragging = false
 		$Area3D.input_ray_pickable = true
-		_check_field_drop()
+		
+		var is_pie = card_info and card_info.card_type.to_lower() == "pie"
+		
+		if is_pie:
+			# Hide ghost slots and place via current_hovered_ghost_slot
+			if main_game and main_game.has_method("set_ghost_slots_visible"):
+				main_game.set_ghost_slots_visible(false, true)
+			if main_game and main_game.has_method("try_place_pie_on_field"):
+				main_game.try_place_pie_on_field(self)
+		else:
+			# Non-pie: use the original FieldDropZone raycast
+			_check_field_drop()
 
 func _process(delta):
 	if is_dragging:
 		# --- 1. HANDLE DROP SELECTION ON MOUSE RELEASE ---
 		# Input.is_action_just_released check catches when they let go of Left Click!
-		if Input.is_action_just_released("click") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) == false:
-			is_dragging = false
+		# --- GHOST SLOT HIGHLIGHT WHILE DRAGGING ---
+		var camera = get_viewport().get_camera_3d()
+		var mouse_pos = get_viewport().get_mouse_position()
+		var ray_origin = camera.project_ray_origin(mouse_pos)
+		var ray_end = ray_origin + camera.project_ray_normal(mouse_pos) * 100.0
+		var space_state = get_world_3d().direct_space_state
+		var query = PhysicsRayQueryParameters3D.create(ray_origin, ray_end)
+		query.collide_with_areas = true
+		var result = space_state.intersect_ray(query)
+		
+		if main_game and main_game.get("is_dragging_pie"):
+			var newly_hovered = null
+			if result:
+				var hit = result.collider
+				var slot_node = hit.get_parent()
+				if slot_node and slot_node.has_method("set_slot_highlight"):
+					newly_hovered = slot_node
 			
-			# HIDE GHOST FIELDS IMMEDIATELY ON DROP
-			if main_game and main_game.has_method("set_ghost_slots_visible"):
-				main_game.set_ghost_slots_visible(false, true)
+			# Update highlights — clear old, set new
+			var prev = main_game.get("current_hovered_ghost_slot")
+			if prev != newly_hovered:
+				if prev and is_instance_valid(prev):
+					prev.set_slot_highlight(false)
+				if newly_hovered:
+					newly_hovered.set_slot_highlight(true)
+				main_game.current_hovered_ghost_slot = newly_hovered
 				
-			# Attempt to place the card where the mouse let go
-			if main_game and main_game.has_method("try_place_pie_on_field"):
-				main_game.try_place_pie_on_field(self)
-			return
-
 		if Input.is_action_just_pressed("ui_cancel"):
 			_cancel_dragging()
 			return
 
 		# --- 2. EXISTING MOVEMENT CODE ---
-		var camera = get_viewport().get_camera_3d()
-		var mouse_pos = get_viewport().get_mouse_position()
-		
 		var project_plane = Plane(Vector3.UP, 0.1)
-		var ray_origin = camera.project_ray_origin(mouse_pos)
 		var ray_dir = camera.project_ray_normal(mouse_pos)
 		
 		var intersect_point = project_plane.intersects_ray(ray_origin, ray_dir)
@@ -221,7 +247,6 @@ func _on_mouse_entered():
 	if manager and manager.has_method("arrange_hand"):
 		manager.hovered_card_index = get_index()
 		manager.arrange_hand()
-
 
 func _on_mouse_exited():
 	if !is_hovered or is_dragging:

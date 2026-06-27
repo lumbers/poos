@@ -6,6 +6,14 @@ extends Node3D
 @onready var card_manager = $Camera3D/CardManager
 @onready var camera_3d: Camera3D = $Camera3D
 
+@onready var ghost_slots_container = $GhostSlotsContainer
+@onready var ghost_slot_active = $GhostSlotsContainer/GhostSlot
+@onready var ghost_slot_bench = [
+	$GhostSlotsContainer/GhostSlot,
+	$GhostSlotsContainer/GhostSlot2,
+	$GhostSlotsContainer/GhostSlot3,
+]
+
 # --- BOARD SLOT ANCHORS ---
 @onready var active_slot_marker = $BoardSlots/ActiveSlot
 @onready var bench_markers = [
@@ -63,6 +71,11 @@ func _ready():
 	
 	# FIX: Start the match with the new turn logic to grant the free card!
 	start_new_turn()
+	
+	# Hide all ghost slots at game start
+	if has_node("GhostSlotsContainer"):
+		for slot in $GhostSlotsContainer.get_children():
+			slot.visible = false
 
 func update_hud_display():
 	if actions_label:
@@ -136,26 +149,41 @@ func try_place_pie_on_field(card_node: Node3D):
 		placement_successful = true
 		
 	# --- 2. PIE CARDS FLOW ---
-	else:
-		if current_hovered_ghost_slot != null:
-			var slot = current_hovered_ghost_slot
-			
-			if slot.is_active_slot:
-				if active_slot_card == null:
-					active_slot_card = card_node
-					target_global_position = active_slot_marker.global_position
-					placement_successful = true
-				else:
-					print("Active slot is already occupied!")
-			else:
-				var idx = slot.slot_index
-				if idx >= 0 and idx < bench_slot_cards.size():
-					if bench_slot_cards[idx] == null:
-						bench_slot_cards[idx] = card_node
-						target_global_position = bench_markers[idx].global_position
+	else: # is_pie
+		# Raycast at drop position to find which ghost slot was targeted
+		var camera = get_viewport().get_camera_3d()
+		var mouse_pos = get_viewport().get_mouse_position()
+		var ray_origin = camera.project_ray_origin(mouse_pos)
+		var ray_end = ray_origin + camera.project_ray_normal(mouse_pos) * 100.0
+		var space_state = get_world_3d().direct_space_state
+		
+		var query = PhysicsRayQueryParameters3D.create(ray_origin, ray_end)
+		query.collide_with_areas = true
+		var result = space_state.intersect_ray(query)
+		
+		if result:
+			var hit = result.collider
+			# Check if we hit a ghost slot's Area3D
+			var slot_node = hit.get_parent() # GhostSlot Node3D is parent of Area3D
+			if slot_node and slot_node.has_method("set_slot_highlight"):
+				if slot_node.is_active_slot:
+					if active_slot_card == null:
+						active_slot_card = card_node
+						target_global_position = active_slot_marker.global_position
 						placement_successful = true
 					else:
-						print("Bench slot ", idx + 1, " is already occupied!")
+						print("Active slot occupied!")
+				else:
+					var idx = slot_node.slot_index
+					if idx >= 0 and idx < bench_slot_cards.size():
+						if bench_slot_cards[idx] == null:
+							bench_slot_cards[idx] = card_node
+							target_global_position = bench_markers[idx].global_position
+							placement_successful = true
+						else:
+							print("Bench slot ", idx + 1, " occupied!")
+			else:
+				print("Dropped a Pie out of bounds!")
 		else:
 			print("Dropped a Pie out of bounds!")
 
@@ -164,6 +192,7 @@ func try_place_pie_on_field(card_node: Node3D):
 		current_energy -= play_cost
 		card_node.is_on_board = true
 		card_node.get_parent().remove_child(card_node)
+		set_ghost_slots_visible(false, true)
 		add_child(card_node)
 
 		var cam_forward = -camera_3d.global_transform.basis.z
@@ -443,9 +472,16 @@ func update_graveyard_mouse_priorities():
 			card.get_node("Area3D").input_ray_pickable = (i == top_index)
 
 func set_ghost_slots_visible(should_show: bool, is_pie: bool):
-	# Track globally whether a Pie selection grid is live
 	is_dragging_pie = (should_show and is_pie)
+	var visible = (should_show and is_pie)
 	
-	# Only reveal the physical 3D mesh indicators if it's a Pie card!
-	if has_node("GhostSlotsContainer"):
-		$GhostSlotsContainer.visible = (should_show and is_pie)
+	# Show/hide each ghost slot's mesh and toggle its collision
+	for slot in [ghost_slot_active] + ghost_slot_bench:
+		if is_instance_valid(slot):
+			slot.get_node("MeshInstance3D").visible = visible
+			slot.monitoring = visible
+			slot.monitorable = visible
+	
+	# Clear hover state when hiding
+	if not visible:
+		current_hovered_ghost_slot = null

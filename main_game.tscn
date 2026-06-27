@@ -231,20 +231,16 @@ offset_bottom = 23.0
 
 [node name="GhostSlot" parent="GhostSlotsContainer" unique_id=52875620 instance=ExtResource("11_02kkc")]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.1, 0.446)
-visible = false
 is_active_slot = true
 
 [node name="GhostSlot2" parent="GhostSlotsContainer" unique_id=970641911 instance=ExtResource("11_02kkc")]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -0.79, 0.1, 1.4)
-visible = false
 slot_index = 0
 
 [node name="GhostSlot3" parent="GhostSlotsContainer" unique_id=1384042018 instance=ExtResource("11_02kkc")]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0.1, 1.4)
-visible = false
 slot_index = 1
 
 [node name="GhostSlot4" parent="GhostSlotsContainer" unique_id=2143601404 instance=ExtResource("11_02kkc")]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0.79, 0.1, 1.4)
-visible = false
 slot_index = 2
