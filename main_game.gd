@@ -346,7 +346,6 @@ func handle_pie_death(card_node: Node3D):
 	
 	# CRITICAL FIX: Wait for the tween flight to completely finish, THEN run priorities!
 	death_tween.chain().tween_callback(func():
-		discard_graveyard_pool.append(card_node)  # Append AFTER landing
 		update_graveyard_mouse_priorities()        # THEN reorder
 		if card_node.has_node("Area3D"):
 			card_node.get_node("Area3D").input_ray_pickable = true
