@@ -354,8 +354,9 @@ func start_new_turn():
 	fly_tween.tween_property(new_card, "global_position", fly_past_target, 0.1)
 	fly_tween.tween_property(new_card, "global_rotation", Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0), 0.3)
 	
-	fly_tween.chain().tween_callback(_add_to_hand_seamlessly.bind(new_card))
-	
+	# Clean, modern lambda format:
+	fly_tween.chain().tween_callback(func(): _add_to_hand_seamlessly(new_card))
+
 	# 3. Refresh HUD UI display counters
 	update_hud_display()
 	
