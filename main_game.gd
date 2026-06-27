@@ -193,6 +193,7 @@ func try_place_pie_on_field(card_node: Node3D):
 		card_node.is_on_board = true
 		card_node.get_parent().remove_child(card_node)
 		set_ghost_slots_visible(false, true)
+		activate_field_drop_zone(false)
 		add_child(card_node)
 
 		var cam_forward = -camera_3d.global_transform.basis.z
@@ -473,15 +474,14 @@ func update_graveyard_mouse_priorities():
 
 func set_ghost_slots_visible(should_show: bool, is_pie: bool):
 	is_dragging_pie = (should_show and is_pie)
-	var visible = (should_show and is_pie)
+	var should_be_visible = (should_show and is_pie)
 	
-	# Show/hide each ghost slot's mesh and toggle its collision
-	for slot in [ghost_slot_active] + ghost_slot_bench:
-		if is_instance_valid(slot):
-			slot.get_node("MeshInstance3D").visible = visible
-			slot.monitoring = visible
-			slot.monitorable = visible
+	if has_node("GhostSlotsContainer"):
+		for slot in $GhostSlotsContainer.get_children():
+			slot.visible = should_be_visible  # ← this must be here
+			if slot.has_node("Area3D"):
+				slot.get_node("Area3D").monitoring = should_be_visible
+				slot.get_node("Area3D").monitorable = should_be_visible
 	
-	# Clear hover state when hiding
-	if not visible:
+	if not should_be_visible:
 		current_hovered_ghost_slot = null

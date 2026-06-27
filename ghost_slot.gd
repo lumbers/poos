@@ -10,8 +10,12 @@ var hover_color = Color(0, 0.8, 0.3, 0.45)
 @export var is_active_slot: bool = false
 
 func _ready():
-	if mesh_instance.get_active_material(0):
-		mesh_instance.get_active_material(0).albedo_color = neutral_color
+	# Create a UNIQUE material per instance so highlights don't bleed across all slots
+	var unique_mat = StandardMaterial3D.new()
+	unique_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	unique_mat.albedo_color = neutral_color
+	mesh_instance.set_surface_override_material(0, unique_mat)
+	
 	area.mouse_entered.connect(_on_mouse_entered)
 	area.mouse_exited.connect(_on_mouse_exited)
 
@@ -28,6 +32,6 @@ func _on_mouse_exited():
 		main_game.current_hovered_ghost_slot = null
 
 func set_slot_highlight(is_highlighted: bool):
-	var mat = mesh_instance.get_active_material(0)
+	var mat = mesh_instance.get_surface_override_material(0)
 	if mat:
 		mat.albedo_color = hover_color if is_highlighted else neutral_color

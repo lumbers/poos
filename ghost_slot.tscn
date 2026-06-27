@@ -11,6 +11,7 @@ material = SubResource("StandardMaterial3D_2wksk")
 size = Vector2(0.85, 1.15)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_74m8w"]
+size = Vector3(1.5, 2, 0.3)
 
 [node name="GhostSlot" type="Area3D" unique_id=52875620]
 script = ExtResource("1_p02dx")
@@ -21,4 +22,5 @@ mesh = SubResource("QuadMesh_4cnqe")
 [node name="Area3D" type="Area3D" parent="." unique_id=1091231284]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=76201951]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 shape = SubResource("BoxShape3D_74m8w")

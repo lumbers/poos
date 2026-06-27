@@ -196,6 +196,8 @@ func _cancel_dragging():
 	$Area3D.input_ray_pickable = true
 	is_hovered = false
 	
+	if main_game and main_game.has_method("set_ghost_slots_visible"):
+		main_game.set_ghost_slots_visible(false, true)
 	if main_game and main_game.has_method("activate_field_drop_zone"):
 		main_game.activate_field_drop_zone(false)
 	
