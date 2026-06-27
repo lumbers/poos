@@ -70,12 +70,11 @@ func take_damage(amount: int):
 		update_field_hp_display()
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
-	# --- NEW: HOVER FIX FOR FIELD CARDS ---
-	# If the mouse moves over the card on the field, manually trigger the preview panel!
+	# --- HOVER FIX FOR FIELD CARDS ---
 	if is_on_board and event is InputEventMouseMotion:
 		if main_game and main_game.get("is_discard_phase") == false:
 			is_hovered = true
-			_on_mouse_entered() # Manually call your preview display code!
+			_on_mouse_entered()
 
 	if is_on_board and card_info and card_info.card_type.to_lower() != "pie":
 		return
@@ -97,10 +96,17 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 
 		is_dragging = true
 		$Area3D.input_ray_pickable = false 
-		
-		if main_game and main_game.has_method("activate_field_drop_zone"):
-			main_game.activate_field_drop_zone(true)
-		
+
+		# --- FIXED: FORCE A PURE BOOLEAN CHECK ---
+		var check_is_pie: bool = false
+		if card_info and card_info.get("card_type") != null:
+			if card_info.card_type.to_lower() == "pie":
+				check_is_pie = true
+
+		# Tell the main game manager to display our target blueprint fields safely!
+		if main_game and main_game.has_method("set_ghost_slots_visible"):
+			main_game.set_ghost_slots_visible(true, check_is_pie)
+			
 		var manager = get_parent()
 		if manager and manager.has_method("arrange_hand"):
 			manager.hovered_card_index = -1
@@ -128,10 +134,25 @@ func _input(event: InputEvent):
 
 func _process(delta):
 	if is_dragging:
+		# --- 1. HANDLE DROP SELECTION ON MOUSE RELEASE ---
+		# Input.is_action_just_released check catches when they let go of Left Click!
+		if Input.is_action_just_released("click") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) == false:
+			is_dragging = false
+			
+			# HIDE GHOST FIELDS IMMEDIATELY ON DROP
+			if main_game and main_game.has_method("set_ghost_slots_visible"):
+				main_game.set_ghost_slots_visible(false, true)
+				
+			# Attempt to place the card where the mouse let go
+			if main_game and main_game.has_method("try_place_pie_on_field"):
+				main_game.try_place_pie_on_field(self)
+			return
+
 		if Input.is_action_just_pressed("ui_cancel"):
 			_cancel_dragging()
 			return
 
+		# --- 2. EXISTING MOVEMENT CODE ---
 		var camera = get_viewport().get_camera_3d()
 		var mouse_pos = get_viewport().get_mouse_position()
 		

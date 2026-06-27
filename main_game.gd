@@ -40,6 +40,10 @@ var current_energy: int = 3 :
 		current_energy = value
 		update_hud_display()
 
+# Place this at the top of main_game.gd with your other global variables!
+var is_dragging_pie: bool = false
+var current_hovered_ghost_slot: Area3D = null
+
 # --- NEW STATE TRACKERS ---
 var is_discard_phase: bool = false
 var marked_for_discard: Array[Node3D] = []
@@ -114,7 +118,7 @@ func _add_to_hand_seamlessly(card_node: Node3D):
 	)
 
 func try_place_pie_on_field(card_node: Node3D):
-	if is_discard_phase: return # Block playing cards during discard phase
+	if is_discard_phase: return
 	
 	var play_cost = 1
 	if current_energy < play_cost:
@@ -125,22 +129,37 @@ func try_place_pie_on_field(card_node: Node3D):
 	var target_global_position: Vector3 = Vector3.ZERO
 	var placement_successful: bool = false
 	
-	if is_pie:
-		if active_slot_card == null:
-			active_slot_card = card_node
-			target_global_position = active_slot_marker.global_position
-			placement_successful = true
-		else:
-			for i in range(bench_slot_cards.size()):
-				if bench_slot_cards[i] == null:
-					bench_slot_cards[i] = card_node
-					target_global_position = bench_markers[i].global_position
-					placement_successful = true
-					break
-	else:
+	# --- 1. NON-PIE CARDS FLOW ---
+	if not is_pie:
+		# Spells and items immediately clear for deployment directly to the graveyard!
 		target_global_position = discard_pile_marker.global_position
 		placement_successful = true
+		
+	# --- 2. PIE CARDS FLOW ---
+	else:
+		if current_hovered_ghost_slot != null:
+			var slot = current_hovered_ghost_slot
+			
+			if slot.is_active_slot:
+				if active_slot_card == null:
+					active_slot_card = card_node
+					target_global_position = active_slot_marker.global_position
+					placement_successful = true
+				else:
+					print("Active slot is already occupied!")
+			else:
+				var idx = slot.slot_index
+				if idx >= 0 and idx < bench_slot_cards.size():
+					if bench_slot_cards[idx] == null:
+						bench_slot_cards[idx] = card_node
+						target_global_position = bench_markers[idx].global_position
+						placement_successful = true
+					else:
+						print("Bench slot ", idx + 1, " is already occupied!")
+		else:
+			print("Dropped a Pie out of bounds!")
 
+	# --- 3. ANIMATION EXECUTION PHASE ---
 	if placement_successful:
 		current_energy -= play_cost
 		card_node.is_on_board = true
@@ -169,9 +188,6 @@ func try_place_pie_on_field(card_node: Node3D):
 		card_manager.arrange_hand()
 		update_hud_display()
 
-		# Inside your main_game.gd placement logic:
-# Move 'dead_card.is_on_board = true' inside the final callback so hover ignores it mid-air!
-
 		tween.chain().tween_callback(func():
 			card_node.is_on_board = true
 			if not is_pie:
@@ -185,7 +201,7 @@ func try_place_pie_on_field(card_node: Node3D):
 		)
 	else:
 		if card_node.has_method("_cancel_dragging"): card_node._cancel_dragging()
-
+		
 # --- REVISED END TURN BUTTON CLICKED ---
 # Find your _on_end_turn_pressed() function and update it to this:
 func _on_end_turn_pressed():
@@ -425,3 +441,11 @@ func update_graveyard_mouse_priorities():
 		# Only the top card gets mouse interaction
 		if card.has_node("Area3D"):
 			card.get_node("Area3D").input_ray_pickable = (i == top_index)
+
+func set_ghost_slots_visible(should_show: bool, is_pie: bool):
+	# Track globally whether a Pie selection grid is live
+	is_dragging_pie = (should_show and is_pie)
+	
+	# Only reveal the physical 3D mesh indicators if it's a Pie card!
+	if has_node("GhostSlotsContainer"):
+		$GhostSlotsContainer.visible = (should_show and is_pie)

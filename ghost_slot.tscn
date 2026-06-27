@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dqvkp3b0f37yd"]
+
+[ext_resource type="Script" uid="uid://c6kkhacjaaiws" path="res://ghost_slot.gd" id="1_p02dx"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2wksk"]
+transparency = 1
+albedo_color = Color(0.4332657, 0.43326563, 0.43326563, 0.27450982)
+
+[sub_resource type="QuadMesh" id="QuadMesh_4cnqe"]
+material = SubResource("StandardMaterial3D_2wksk")
+size = Vector2(0.85, 1.15)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_74m8w"]
+
+[node name="GhostSlot" type="Area3D" unique_id=52875620]
+script = ExtResource("1_p02dx")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=797710334]
+mesh = SubResource("QuadMesh_4cnqe")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1923897394]
+shape = SubResource("BoxShape3D_74m8w")
