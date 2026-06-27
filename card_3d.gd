@@ -217,6 +217,14 @@ func _check_field_drop():
 	var query = PhysicsRayQueryParameters3D.create(ray_origin, ray_end)
 	query.collide_with_areas = true
 	
+	# Build exclude list of all ghost slot Area3Ds so non-pie cards ignore them
+	var exclude_rids: Array[RID] = []
+	if main_game and main_game.has_node("GhostSlotsContainer"):
+		for slot in main_game.get_node("GhostSlotsContainer").get_children():
+			if slot.has_node("Area3D"):
+				exclude_rids.append(slot.get_node("Area3D").get_rid())
+	query.exclude = exclude_rids
+	
 	var result = space_state.intersect_ray(query)
 	
 	if result and result.collider.name == "FieldDropZone":
