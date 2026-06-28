@@ -28,6 +28,13 @@ glow_enabled = true
 [sub_resource type="BoxShape3D" id="BoxShape3D_mf81u"]
 size = Vector3(3.3269043, 1.8635254, 3.4822998)
 
+[sub_resource type="BoxMesh" id="BoxMesh_02kkc"]
+size = Vector3(3.327, 1.864, 3.482)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_aomqu"]
+transparency = 1
+albedo_color = Color(0.8784314, 0.26666668, 0.48235294, 0.11764706)
+
 [node name="MainGame" type="Node3D" unique_id=1627973838]
 script = ExtResource("1_l5ukw")
 card_pool = Array[ExtResource("2_mf81u")]([ExtResource("3_02kkc"), ExtResource("6_f52ns"), ExtResource("5_2pltu"), ExtResource("4_6bm6p")])
@@ -107,6 +114,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.3)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13391113, 0.45398766, 0.42129302)
 shape = SubResource("BoxShape3D_mf81u")
 debug_color = Color(0.6313726, 0.1254902, 0.5921569, 1)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="FieldDropZone" unique_id=1311782361]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.134, 0.454, 0.421)
+mesh = SubResource("BoxMesh_02kkc")
+surface_material_override/0 = SubResource("StandardMaterial3D_aomqu")
 
 [node name="BoardSlots" type="Node3D" parent="." unique_id=1523343456]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.38446522)

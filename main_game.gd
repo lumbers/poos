@@ -22,6 +22,9 @@ extends Node3D
 	$BoardSlots/BenchSlot3
 ]
 
+# Add this at the top of main_game.gd with your other @onready variables
+@onready var field_drop_mesh = $FieldDropZone/MeshInstance3D # Make sure this matches your scene tree path!
+
 # --- DISCARD PILE ---
 @onready var discard_pile_marker = $DiscardPileMarker
 
@@ -76,6 +79,13 @@ func _ready():
 	if has_node("GhostSlotsContainer"):
 		for slot in $GhostSlotsContainer.get_children():
 			slot.visible = false
+			
+	# Force the drop zone indicator hidden at start
+	if is_instance_valid(field_drop_mesh):
+		field_drop_mesh.visible = false
+		
+	activate_field_drop_zone(false)
+	start_new_turn()
 
 func update_hud_display():
 	if actions_label:
@@ -477,9 +487,14 @@ func set_ghost_slots_visible(should_show: bool, is_pie: bool):
 	is_dragging_pie = (should_show and is_pie)
 	var should_be_visible = (should_show and is_pie)
 	
+	# Toggle the field drop mesh for ANY card drag
+	if is_instance_valid(field_drop_mesh):
+		field_drop_mesh.visible = should_show
+	
+	# Toggle each ghost slot individually (Node3D supports visible)
 	if has_node("GhostSlotsContainer"):
 		for slot in $GhostSlotsContainer.get_children():
-			slot.visible = should_be_visible  # ← this must be here
+			slot.visible = should_be_visible
 			if slot.has_node("Area3D"):
 				slot.get_node("Area3D").monitoring = should_be_visible
 				slot.get_node("Area3D").monitorable = should_be_visible
