@@ -18,6 +18,14 @@ func _ready():
 	
 	area.mouse_entered.connect(_on_mouse_entered)
 	area.mouse_exited.connect(_on_mouse_exited)
+	area.input_event.connect(_on_input_event)
+
+# NEW FUNCTION: Tell the main game when an empty slot is clicked!
+func _on_input_event(camera: Node, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var main_game = get_node_or_null("/root/MainGame")
+		if main_game and main_game.has_method("handle_ghost_slot_clicked"):
+			main_game.handle_ghost_slot_clicked(self)
 
 func _on_mouse_entered():
 	var main_game = get_node_or_null("/root/MainGame")

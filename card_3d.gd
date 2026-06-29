@@ -85,8 +85,10 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 				main_game.toggle_card_discard_selection(self)
 			return
 
+		# Replace your old print statement with this:
 		if is_on_board:
-			print("Clicked a Pie on the battlefield: ", card_info.card_name)
+			if main_game and main_game.has_method("handle_field_pie_clicked"):
+				main_game.handle_field_pie_clicked(self)
 			return
 
 		if main_game and main_game.has_node("Camera3D/CardManager"):
@@ -125,6 +127,16 @@ func set_discard_highlight(should_highlight: bool):
 			template.modulate = Color(1.0, 0.4, 0.4, 1.0)
 		else:
 			# Reset texture back to standard white daylight clear illumination
+			template.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+# --- NEW VISUAL WHITE HIGHLIGHT FOR FIELD SELECTION ---
+func set_selection_highlight(should_highlight: bool):
+	var template = $MeshInstance3D/SubViewport/PieTemplate
+	if template:
+		if should_highlight:
+			# Over-drive the color values to make it glow bright white!
+			template.modulate = Color(2.0, 2.0, 2.0, 1.0) 
+		else:
 			template.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 func _input(event: InputEvent):
