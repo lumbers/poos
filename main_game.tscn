@@ -239,6 +239,32 @@ layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
 
+[node name="SwitchButton" type="Button" parent="UI" unique_id=1068709441]
+anchors_preset = -1
+anchor_left = 0.013
+anchor_top = 0.86300004
+anchor_right = 0.13700001
+anchor_bottom = 0.93200004
+offset_left = 0.03999901
+offset_top = -0.040039063
+offset_right = -0.040008545
+offset_bottom = 0.4399414
+theme_override_font_sizes/font_size = 32
+text = "Switch"
+
+[node name="FreeMoveUpButton" type="Button" parent="UI" unique_id=1465329974]
+anchors_preset = -1
+anchor_left = 0.010000001
+anchor_top = 0.79200006
+anchor_right = 0.13800001
+anchor_bottom = 0.84800005
+offset_left = -0.20000076
+offset_top = -0.3600464
+offset_right = 0.039978027
+offset_bottom = 0.15997314
+theme_override_font_sizes/font_size = 32
+text = "Move up for free"
+
 [node name="GhostSlotsContainer" type="Node" parent="." unique_id=2119247690]
 
 [node name="GhostSlot" parent="GhostSlotsContainer" unique_id=52875620 instance=ExtResource("11_02kkc")]

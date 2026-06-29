@@ -6,6 +6,9 @@ extends Node3D
 @onready var card_manager = $Camera3D/CardManager
 @onready var camera_3d: Camera3D = $Camera3D
 
+@onready var switch_button = $UI/SwitchButton
+@onready var free_move_up_button = $UI/FreeMoveUpButton
+
 @onready var ghost_slots_container = $GhostSlotsContainer
 @onready var ghost_slot_active = $GhostSlotsContainer/GhostSlot
 @onready var ghost_slot_bench = [
@@ -59,6 +62,13 @@ var current_hovered_ghost_slot: Area3D = null
 var is_discard_phase: bool = false
 var marked_for_discard: Array[Node3D] = []
 
+# --- NEW DISCARD & SWITCHING STATES ---
+enum DiscardMode { NONE, HAND_LIMIT, SWITCHING }
+var current_discard_mode: DiscardMode = DiscardMode.NONE
+
+var is_rearranging_field: bool = false
+var is_free_move_active: bool = false
+
 func _ready():
 	get_viewport().physics_object_picking = true
 	deck_3d.deck_clicked.connect(_on_deck_clicked)
@@ -66,6 +76,9 @@ func _ready():
 	
 	if confirm_discard_button:
 		confirm_discard_button.pressed.connect(_on_confirm_discard_pressed)
+	
+	if switch_button:
+		switch_button.pressed.connect(initiate_paid_switch)
 		
 	if discard_overlay:
 		discard_overlay.visible = false
@@ -250,13 +263,13 @@ func _on_end_turn_pressed():
 	if hand_count > max_hand_size:
 		print("Hand size exceeds limit! Entering Discard Phase.")
 		is_discard_phase = true
+		current_discard_mode = DiscardMode.HAND_LIMIT # <-- THIS IS THE NEW LINE
 		marked_for_discard.clear()
 		if discard_overlay:
 			discard_overlay.visible = true
 		if confirm_discard_button:
 			confirm_discard_button.visible = true
 	else:
-		# FIX: Proceed cleanly to next turn drawing sequence!
 		start_new_turn()
 
 # --- NEW SELECTION CHECKER FOR CARD_3D CLICKS ---
@@ -274,25 +287,33 @@ func toggle_card_discard_selection(card_node: Node3D):
 
 # --- NEW CONFIRM SELECTION BURNING ANIMATION ---
 func _on_confirm_discard_pressed():
-	var current_hand_count = card_manager.get_child_count()
-	var final_calculated_count = current_hand_count - marked_for_discard.size()
-	
-	if final_calculated_count > max_hand_size:
-		print("You still have too many cards! Must discard down to 7.")
-		return
-		
+	# --- 1. ENFORCE RULES BASED ON CURRENT MODE ---
+	if current_discard_mode == DiscardMode.HAND_LIMIT:
+		var current_hand_count = card_manager.get_child_count()
+		var final_calculated_count = current_hand_count - marked_for_discard.size()
+		if final_calculated_count > max_hand_size:
+			print("You still have too many cards! Must discard down to 7.")
+			return
+			
+	elif current_discard_mode == DiscardMode.SWITCHING:
+		if marked_for_discard.size() != 2:
+			print("You MUST discard exactly 2 cards to switch!")
+			return
+		# Successfully paid! Deduct 1 energy.
+		current_energy -= 1 
+
 	print("Processing burning selection...")
-	is_discard_phase = false
+	var finished_mode = current_discard_mode # Save the mode so we know what to do at the end
 	
-	# Hide BOTH the overlay and the button now!
+	is_discard_phase = false
+	current_discard_mode = DiscardMode.NONE
+	
 	if discard_overlay:
 		discard_overlay.visible = false
 	if confirm_discard_button:
 		confirm_discard_button.visible = false
 		
-	# Loop through our selection array and fly each one straight to the discard pile mesh!
-	# Inside your _on_confirm_discard_pressed() function dead_card loop:
-	# Update this loop block inside your _on_confirm_discard_pressed() function:
+	# --- 2. FLY CARDS TO DISCARD PILE ---
 	for dead_card in marked_for_discard:
 		if is_instance_valid(dead_card):
 			if dead_card.has_method("set_discard_highlight"):
@@ -304,7 +325,6 @@ func _on_confirm_discard_pressed():
 			
 			discard_graveyard_pool.append(dead_card)
 			
-			# FIX 1: Set a distinct +0.1 vertical lift per card in the stack!
 			var height_offset = Vector3(0, 0.021 * discard_graveyard_pool.size(), 0)
 			var target_destination = discard_pile_marker.global_position
 			
@@ -318,18 +338,19 @@ func _on_confirm_discard_pressed():
 			burn_tween.tween_property(dead_card, "global_transform:basis", flat_layout, 0.25)
 			burn_tween.tween_property(dead_card, "scale", target_pile_scale, 0.25)
 			
-			# FIX 2: KEEP input pickable enabled so the mouse raycast can see it!
 			if dead_card.has_node("Area3D"):
 				dead_card.get_node("Area3D").input_ray_pickable = true
 				
-	# After adding the cards, update which card is allowed to be hovered
 	update_graveyard_mouse_priorities()
 	marked_for_discard.clear()
-	
 	card_manager.arrange_hand()
 	
-	# FIX: Proceed cleanly to the next turn after forced cleanup phase finishes!
-	start_new_turn()
+	# --- 3. ROUTE THE GAME STATE ---
+	if finished_mode == DiscardMode.HAND_LIMIT:
+		start_new_turn()
+	elif finished_mode == DiscardMode.SWITCHING:
+		print("Payment accepted! Click and drag your field Pies to swap them.")
+		is_rearranging_field = true
 
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):
@@ -501,3 +522,38 @@ func set_ghost_slots_visible(should_show: bool, is_pie: bool):
 	
 	if not should_be_visible:
 		current_hovered_ghost_slot = null
+
+func initiate_paid_switch():
+	if current_energy < 1:
+		print("Not enough energy to switch!")
+		return
+	if card_manager.get_child_count() < 2:
+		print("You need at least 2 cards in your hand to pay for a switch!")
+		return
+		
+	print("Select exactly 2 cards to discard. Press ESCAPE to cancel.")
+	is_discard_phase = true
+	current_discard_mode = DiscardMode.SWITCHING
+	marked_for_discard.clear()
+	
+	if discard_overlay: discard_overlay.visible = true
+	if confirm_discard_button: confirm_discard_button.visible = true
+
+func _unhandled_input(event: InputEvent):
+	# ui_cancel is the default Godot action for the Escape key
+	if event.is_action_pressed("ui_cancel"): 
+		if is_discard_phase and current_discard_mode == DiscardMode.SWITCHING:
+			cancel_switching_discard()
+
+func cancel_switching_discard():
+	print("Switching cancelled! No energy spent.")
+	is_discard_phase = false
+	current_discard_mode = DiscardMode.NONE
+	
+	for card in marked_for_discard:
+		if is_instance_valid(card) and card.has_method("set_discard_highlight"):
+			card.set_discard_highlight(false)
+	marked_for_discard.clear()
+	
+	if discard_overlay: discard_overlay.visible = false
+	if confirm_discard_button: confirm_discard_button.visible = false
