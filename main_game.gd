@@ -37,6 +37,14 @@ extends Node3D
 @onready var end_turn_button = $UI/HUD/EndTurnButton
 @onready var preview_panel = $UI/CardPreviewPanel
 
+@onready var discard_title = $UI/DiscardOverlay/DiscardTitle
+@onready var discard_counter = $UI/DiscardOverlay/DiscardCounter
+
+# --- NEW FIELD SELECTION TRACKERS ---
+var selected_field_pie: Node3D = null
+var target_field_pie: Node3D = null
+var target_ghost_slot: Node3D = null
+
 # --- NEW DISCARD PHASE UI HOOKUPS ---
 @onready var discard_overlay = $UI/DiscardOverlay
 @onready var confirm_discard_button = $UI/ConfirmDiscardButton
@@ -73,6 +81,9 @@ func _ready():
 	get_viewport().physics_object_picking = true
 	deck_3d.deck_clicked.connect(_on_deck_clicked)
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
+	
+	if free_move_up_button:
+		free_move_up_button.pressed.connect(execute_free_move_up)
 	
 	if confirm_discard_button:
 		confirm_discard_button.pressed.connect(_on_confirm_discard_pressed)
@@ -267,6 +278,7 @@ func _on_end_turn_pressed():
 		marked_for_discard.clear()
 		if discard_overlay:
 			discard_overlay.visible = true
+			update_discard_ui_counters()
 		if confirm_discard_button:
 			confirm_discard_button.visible = true
 	else:
@@ -284,6 +296,8 @@ func toggle_card_discard_selection(card_node: Node3D):
 		marked_for_discard.append(card_node)
 		if card_node.has_method("set_discard_highlight"):
 			card_node.set_discard_highlight(true)
+			
+	update_discard_ui_counters()
 
 # --- NEW CONFIRM SELECTION BURNING ANIMATION ---
 func _on_confirm_discard_pressed():
@@ -537,6 +551,7 @@ func initiate_paid_switch():
 	marked_for_discard.clear()
 	
 	if discard_overlay: discard_overlay.visible = true
+	update_discard_ui_counters()
 	if confirm_discard_button: confirm_discard_button.visible = true
 
 func _unhandled_input(event: InputEvent):
@@ -557,3 +572,100 @@ func cancel_switching_discard():
 	
 	if discard_overlay: discard_overlay.visible = false
 	if confirm_discard_button: confirm_discard_button.visible = false
+
+# ==========================================================
+# 🔄 FIELD SWITCHING & MOVEMENT LOGIC
+# ==========================================================
+
+func handle_field_pie_clicked(pie: Node3D):
+	if is_discard_phase: return # No selecting field pieces while discarding!
+	
+	# Clicking the same pie twice deselects it
+	if selected_field_pie == pie:
+		clear_field_selection()
+		return
+		
+	# First click: Select the starting pie
+	if selected_field_pie == null:
+		selected_field_pie = pie
+		pie.set_selection_highlight(true)
+		set_ghost_slots_visible(true, true) # Reveal destinations
+		
+		# Check for FREE move: Is it on the bench, and is Active empty?
+		if active_slot_card == null and bench_slot_cards.has(pie):
+			if free_move_up_button: free_move_up_button.visible = true
+			
+	# Second click: Select a target pie to swap with
+	else:
+		if target_field_pie != null:
+			target_field_pie.set_selection_highlight(false) # Clear old target
+			
+		target_field_pie = pie
+		target_ghost_slot = null
+		pie.set_selection_highlight(true)
+		evaluate_switch_validity()
+
+func handle_ghost_slot_clicked(slot: Node3D):
+	# You must have selected a pie first to target an empty slot!
+	if selected_field_pie != null:
+		target_ghost_slot = slot
+		if target_field_pie != null:
+			target_field_pie.set_selection_highlight(false)
+			target_field_pie = null
+		evaluate_switch_validity()
+
+func evaluate_switch_validity():
+	if switch_button: switch_button.visible = false
+	if free_move_up_button: free_move_up_button.visible = false
+	
+	var is_start_active = (selected_field_pie == active_slot_card)
+	var is_target_active = false
+	
+	if target_field_pie != null:
+		is_target_active = (target_field_pie == active_slot_card)
+	elif target_ghost_slot != null:
+		is_target_active = target_ghost_slot.is_active_slot
+		
+	# A paid switch is ONLY valid if exactly one side of the equation involves the Active Slot
+	if (is_start_active and not is_target_active) or (not is_start_active and is_target_active):
+		if switch_button: switch_button.visible = true
+
+func clear_field_selection():
+	if selected_field_pie: selected_field_pie.set_selection_highlight(false)
+	if target_field_pie: target_field_pie.set_selection_highlight(false)
+	
+	selected_field_pie = null
+	target_field_pie = null
+	target_ghost_slot = null
+	
+	if switch_button: switch_button.visible = false
+	if free_move_up_button: free_move_up_button.visible = false
+	set_ghost_slots_visible(false, true)
+
+func execute_free_move_up():
+	print("Executing Free Move to Active Slot!")
+	if selected_field_pie != null:
+		# Remove from bench array
+		for i in range(bench_slot_cards.size()):
+			if bench_slot_cards[i] == selected_field_pie:
+				bench_slot_cards[i] = null
+				break
+		# Assign to active
+		active_slot_card = selected_field_pie
+		
+		# Animate
+		var tween = create_tween()
+		tween.tween_property(selected_field_pie, "global_position", active_slot_marker.global_position + Vector3(0, 0.02, 0), 0.3)
+		
+	clear_field_selection()
+
+# --- UPDATE DISCARD TEXT UI ---
+func update_discard_ui_counters():
+	if current_discard_mode == DiscardMode.SWITCHING:
+		if discard_title: discard_title.text = "Discard 2 cards to switch your pie"
+		if discard_counter: 
+			discard_counter.text = str(marked_for_discard.size()) + " / 2"
+			discard_counter.visible = true
+	elif current_discard_mode == DiscardMode.HAND_LIMIT:
+		if discard_title: discard_title.text = "Discard until you have 7 cards in your hand"
+		if discard_counter: discard_counter.visible = false # Hide counter for standard limit
