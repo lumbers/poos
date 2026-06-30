@@ -129,15 +129,20 @@ func set_discard_highlight(should_highlight: bool):
 			# Reset texture back to standard white daylight clear illumination
 			template.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
-# --- NEW VISUAL WHITE HIGHLIGHT FOR FIELD SELECTION ---
 func set_selection_highlight(should_highlight: bool):
-	var template = $MeshInstance3D/SubViewport/PieTemplate
-	if template:
-		if should_highlight:
+	var outline = $MeshInstance3D/SubViewport/PieTemplate/SelectionOutline
+	if outline:
+		outline.visible = should_highlight
+
+# --- NEW VISUAL WHITE HIGHLIGHT FOR FIELD SELECTION ---
+#func set_selection_highlight(should_highlight: bool):
+	#var template = $MeshInstance3D/SubViewport/PieTemplate
+	#if template:
+		#if should_highlight:
 			# Over-drive the color values to make it glow bright white!
-			template.modulate = Color(2.0, 2.0, 2.0, 1.0) 
-		else:
-			template.modulate = Color(1.0, 1.0, 1.0, 1.0)
+			#template.modulate = Color(2.0, 2.0, 2.0, 1.0) 
+		#else:
+			#template.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 func _input(event: InputEvent):
 	if is_on_board or !is_dragging:

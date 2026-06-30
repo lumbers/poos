@@ -14,6 +14,14 @@ border_width_right = 4
 border_width_bottom = 4
 border_color = Color(0, 0, 0, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x1r4m"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_width_left = 10
+border_width_top = 10
+border_width_right = 10
+border_width_bottom = 10
+border_color = Color(1, 1, 1, 1)
+
 [node name="PieTemplate" type="Control" unique_id=1399480307]
 layout_mode = 3
 anchors_preset = 15
@@ -82,3 +90,13 @@ offset_bottom = 494.0
 theme_override_constants/outline_size = 6
 text = "d money"
 horizontal_alignment = 2
+
+[node name="SelectionOutline" type="Panel" parent="." unique_id=1199336925]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_x1r4m")

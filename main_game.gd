@@ -363,8 +363,8 @@ func _on_confirm_discard_pressed():
 	if finished_mode == DiscardMode.HAND_LIMIT:
 		start_new_turn()
 	elif finished_mode == DiscardMode.SWITCHING:
-		print("Payment accepted! Click and drag your field Pies to swap them.")
-		is_rearranging_field = true
+		# FIRE THE SWAP ANIMATION HERE!
+		execute_paid_switch()
 
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):
@@ -606,8 +606,21 @@ func handle_field_pie_clicked(pie: Node3D):
 		evaluate_switch_validity()
 
 func handle_ghost_slot_clicked(slot: Node3D):
-	# You must have selected a pie first to target an empty slot!
 	if selected_field_pie != null:
+		
+		# --- NEW: IS THERE A PIE SITTING IN THIS GHOST SLOT? ---
+		var occupied_pie = null
+		if slot.is_active_slot and active_slot_card != null:
+			occupied_pie = active_slot_card
+		elif not slot.is_active_slot and bench_slot_cards[slot.slot_index] != null:
+			occupied_pie = bench_slot_cards[slot.slot_index]
+			
+		# If there is a pie here, treat this as a Pie click instead!
+		if occupied_pie != null and occupied_pie != selected_field_pie:
+			handle_field_pie_clicked(occupied_pie)
+			return
+			
+		# Otherwise, standard empty slot logic
 		target_ghost_slot = slot
 		if target_field_pie != null:
 			target_field_pie.set_selection_highlight(false)
@@ -661,11 +674,70 @@ func execute_free_move_up():
 
 # --- UPDATE DISCARD TEXT UI ---
 func update_discard_ui_counters():
+	# Get a reference to your old Hand Limit label (check this node path matches yours!)
+	var old_hand_label = get_node_or_null("UI/DiscardOverlay/DiscardInstructionLabel")
+	
 	if current_discard_mode == DiscardMode.SWITCHING:
-		if discard_title: discard_title.text = "Discard 2 cards to switch your pie"
+		if old_hand_label: old_hand_label.visible = false
+		if discard_title: 
+			discard_title.text = "Discard 2 cards to switch your pie"
+			discard_title.visible = true
 		if discard_counter: 
 			discard_counter.text = str(marked_for_discard.size()) + " / 2"
 			discard_counter.visible = true
+			
 	elif current_discard_mode == DiscardMode.HAND_LIMIT:
-		if discard_title: discard_title.text = "Discard until you have 7 cards in your hand"
-		if discard_counter: discard_counter.visible = false # Hide counter for standard limit
+		if old_hand_label: old_hand_label.visible = true
+		if discard_title: discard_title.visible = false
+		if discard_counter: discard_counter.visible = false
+
+func execute_paid_switch():
+	print("Executing Paid Switch!")
+	var pie1 = selected_field_pie
+	
+	# --- CASE A: SWAPPING TWO PIES ---
+	if target_field_pie != null:
+		var pie2 = target_field_pie
+		var pie1_is_active = (pie1 == active_slot_card)
+		
+		# Find their bench positions (returns -1 if not on bench)
+		var pie1_bench_idx = bench_slot_cards.find(pie1)
+		var pie2_bench_idx = bench_slot_cards.find(pie2)
+		
+		# Update the tracking arrays
+		if pie1_is_active:
+			active_slot_card = pie2
+			bench_slot_cards[pie2_bench_idx] = pie1
+		else:
+			active_slot_card = pie1
+			bench_slot_cards[pie1_bench_idx] = pie2
+			
+		# Animate the swap
+		var p1_target = active_slot_marker.global_position if not pie1_is_active else bench_markers[pie2_bench_idx].global_position
+		var p2_target = active_slot_marker.global_position if pie1_is_active else bench_markers[pie1_bench_idx].global_position
+		
+		var tween = create_tween().set_parallel(true)
+		tween.tween_property(pie1, "global_position", p1_target + Vector3(0, 0.02, 0), 0.3)
+		tween.tween_property(pie2, "global_position", p2_target + Vector3(0, 0.02, 0), 0.3)
+
+	# --- CASE B: MOVING ACTIVE PIE TO EMPTY BENCH ---
+	elif target_ghost_slot != null:
+		var pie1_is_active = (pie1 == active_slot_card)
+		var pie1_bench_idx = bench_slot_cards.find(pie1)
+		
+		if target_ghost_slot.is_active_slot:
+			bench_slot_cards[pie1_bench_idx] = null
+			active_slot_card = pie1
+			var tween = create_tween()
+			tween.tween_property(pie1, "global_position", active_slot_marker.global_position + Vector3(0, 0.02, 0), 0.3)
+		else:
+			if pie1_is_active: active_slot_card = null
+			else: bench_slot_cards[pie1_bench_idx] = null
+			
+			bench_slot_cards[target_ghost_slot.slot_index] = pie1
+			var tween = create_tween()
+			tween.tween_property(pie1, "global_position", bench_markers[target_ghost_slot.slot_index].global_position + Vector3(0, 0.02, 0), 0.3)
+
+	# --- FIX 4: CLEAN UP ALL HIGHLIGHTS AND GHOST GRIDS ---
+	clear_field_selection()
+	set_ghost_slots_visible(false, true)

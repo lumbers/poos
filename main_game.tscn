@@ -233,15 +233,16 @@ theme_override_font_sizes/font_size = 32
 text = "end turn"
 
 [node name="ConfirmDiscardButton" type="Button" parent="UI" unique_id=1253456435]
+visible = false
 anchors_preset = -1
-anchor_left = 0.018000001
-anchor_top = 0.846
-anchor_right = 0.177
-anchor_bottom = 0.90900004
-offset_left = 784.44
-offset_top = -780.68
-offset_right = 784.16003
-offset_bottom = -780.72003
+anchor_left = 0.42700002
+anchor_top = 0.123
+anchor_right = 0.58500004
+anchor_bottom = 0.186
+offset_left = -0.84002686
+offset_top = 0.16000366
+offset_right = 0.79992676
+offset_bottom = 0.11999512
 theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 32
 text = "discard cards"
