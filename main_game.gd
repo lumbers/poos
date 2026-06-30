@@ -8,7 +8,6 @@ extends Node3D
 
 @onready var switch_button = $UI/SwitchButton
 @onready var free_move_up_button = $UI/FreeMoveUpButton
-
 @onready var cancel_button = $UI/CancelButton
 
 @onready var ghost_slots_container = $GhostSlotsContainer
@@ -552,10 +551,8 @@ func initiate_paid_switch():
 	current_discard_mode = DiscardMode.SWITCHING
 	marked_for_discard.clear()
 	
-	# BUTTON SWAP: Hide the layout UI, reveal the discard confirm UI in its place!
+	# BUTTON SWAP: Hide Switch, reveal the Discard Confirm in its exact place!
 	if switch_button: switch_button.visible = false
-	# (Leave Cancel button visible so they can still back out easily!)
-	
 	if discard_overlay: discard_overlay.visible = true
 	if confirm_discard_button: confirm_discard_button.visible = true
 	update_discard_ui_counters()
@@ -579,7 +576,7 @@ func cancel_switching_discard():
 	if discard_overlay: discard_overlay.visible = false
 	if confirm_discard_button: confirm_discard_button.visible = false
 	
-	# QoL FIX: Hitting escape purges the entire board layout state perfectly!
+	# QoL FIX: Hitting escape/cancel purges the entire board layout state!
 	clear_field_selection()
 	
 # ==========================================================
@@ -589,30 +586,41 @@ func cancel_switching_discard():
 func handle_field_pie_clicked(pie: Node3D):
 	if is_discard_phase: return
 	
-	# QoL FIX: Clicking the primary pie again completely wipes the selection
+	# --- 1. DESELECTING THE PRIMARY CARD ---
 	if selected_field_pie == pie:
-		clear_field_selection()
+		pie.set_selection_highlight(false)
+		
+		# If we have a target card selected, shift it to be the new primary!
+		if target_field_pie != null:
+			selected_field_pie = target_field_pie
+			target_field_pie = null
+			target_ghost_slot = null
+			evaluate_switch_validity()
+		else:
+			# If nothing else is selected, completely wipe the board state
+			clear_field_selection()
 		return
 		
-	# QoL FIX: Clicking the target pie again cleanly deselects just the target!
+	# --- 2. DESELECTING THE TARGET CARD ---
 	if target_field_pie == pie:
 		pie.set_selection_highlight(false)
 		target_field_pie = null
 		evaluate_switch_validity()
 		return
 		
-	# First click
+	# --- 3. SELECTING THE FIRST CARD ---
 	if selected_field_pie == null:
 		selected_field_pie = pie
 		pie.set_selection_highlight(true)
-		set_ghost_slots_visible(true, true)
 		
-		if cancel_button: cancel_button.visible = true # Show cancel option immediately!
+		# Reveal ghost blueprints for Pies, but NO PINK MESH!
+		set_ghost_slots_visible(true, true) 
+		if cancel_button: cancel_button.visible = true
 		
 		if active_slot_card == null and bench_slot_cards.has(pie):
 			if free_move_up_button: free_move_up_button.visible = true
 			
-	# Second click
+	# --- 4. SELECTING A NEW TARGET CARD ---
 	else:
 		if target_field_pie != null:
 			target_field_pie.set_selection_highlight(false)
@@ -632,8 +640,8 @@ func handle_ghost_slot_clicked(slot: Node3D):
 		elif not slot.is_active_slot and bench_slot_cards[slot.slot_index] != null:
 			occupied_pie = bench_slot_cards[slot.slot_index]
 			
-		# If there is a pie here, treat this as a Pie click instead!
-		if occupied_pie != null and occupied_pie != selected_field_pie:
+		# FIX: Removed the restriction! If a pie is here, pass the click straight to it!
+		if occupied_pie != null:
 			handle_field_pie_clicked(occupied_pie)
 			return
 			
@@ -647,7 +655,7 @@ func handle_ghost_slot_clicked(slot: Node3D):
 func evaluate_switch_validity():
 	if switch_button: switch_button.visible = false
 	if free_move_up_button: free_move_up_button.visible = false
-	if cancel_button: cancel_button.visible = true # Always visible while building a selection
+	if cancel_button: cancel_button.visible = true 
 	
 	var is_start_active = (selected_field_pie == active_slot_card)
 	var is_target_active = false
@@ -657,6 +665,7 @@ func evaluate_switch_validity():
 	elif target_ghost_slot != null:
 		is_target_active = target_ghost_slot.is_active_slot
 		
+	# Valid if exactly one side is the active slot
 	if (is_start_active and not is_target_active) or (not is_start_active and is_target_active):
 		if switch_button: switch_button.visible = true
 
@@ -672,10 +681,10 @@ func clear_field_selection():
 	if free_move_up_button: free_move_up_button.visible = false
 	if cancel_button: cancel_button.visible = false
 	
-	# TOTAL CLEANUP: Wipe ghost slots and pink mesh!
+	# TOTAL CLEANUP: Wipe ghost slots and force pink mesh off
 	set_ghost_slots_visible(false, true)
 	if is_instance_valid(field_drop_mesh): field_drop_mesh.visible = false
-
+	
 func execute_free_move_up():
 	print("Executing Free Move to Active Slot!")
 	if selected_field_pie != null:
