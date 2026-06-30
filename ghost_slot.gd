@@ -21,6 +21,7 @@ func _ready():
 	area.input_event.connect(_on_input_event)
 
 # NEW FUNCTION: Tell the main game when an empty slot is clicked!
+@warning_ignore("unused_parameter")
 func _on_input_event(camera: Node, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		var main_game = get_node_or_null("/root/MainGame")

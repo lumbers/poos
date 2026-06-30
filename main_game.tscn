@@ -141,6 +141,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.033, 0.051374882, 1.775)
 [node name="UI" type="CanvasLayer" parent="." unique_id=1079242632]
 
 [node name="DiscardOverlay" type="ColorRect" parent="UI" unique_id=1955624780]
+visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -151,23 +152,24 @@ color = Color(0.27395758, 0.27395758, 0.27395758, 0.1)
 
 [node name="DiscardInstructionLabel" type="Label" parent="UI/DiscardOverlay" unique_id=1779858958]
 layout_mode = 0
-offset_left = 621.0
 offset_top = 71.0
-offset_right = 1284.0
+offset_right = 1922.0
 offset_bottom = 116.0
 theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 32
 text = "discard until you have 7 cards in your hand"
+horizontal_alignment = 1
 
 [node name="DiscardTitle" type="Label" parent="UI/DiscardOverlay" unique_id=1308760155]
 layout_mode = 0
-offset_left = 621.0
+offset_left = 17.0
 offset_top = 71.0
-offset_right = 1284.0
+offset_right = 1918.0
 offset_bottom = 116.0
 theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 32
 text = "Discard 2 cards in your hand to switch your pie."
+horizontal_alignment = 1
 
 [node name="DiscardCounter" type="Label" parent="UI/DiscardOverlay" unique_id=1241558923]
 layout_mode = 1
