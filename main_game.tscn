@@ -150,6 +150,22 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.27395758, 0.27395758, 0.27395758, 0.1)
 
+[node name="DiscardCounter" type="Label" parent="UI/DiscardOverlay" unique_id=1241558923]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.14600001
+anchor_top = 0.804
+anchor_right = 0.18400002
+anchor_bottom = 0.85700005
+offset_left = -0.32003784
+offset_top = -0.32000732
+offset_right = -0.2800293
+offset_bottom = 0.4399414
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 32
+text = "0 / 2"
+horizontal_alignment = 2
+
 [node name="DiscardInstructionLabel" type="Label" parent="UI/DiscardOverlay" unique_id=1779858958]
 layout_mode = 0
 offset_top = 71.0
@@ -167,25 +183,9 @@ offset_top = 71.0
 offset_right = 1918.0
 offset_bottom = 116.0
 theme_override_constants/outline_size = 12
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 48
 text = "Discard 2 cards in your hand to switch your pie."
 horizontal_alignment = 1
-
-[node name="DiscardCounter" type="Label" parent="UI/DiscardOverlay" unique_id=1241558923]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.595
-anchor_top = 0.132
-anchor_right = 0.629
-anchor_bottom = 0.17400001
-offset_left = -0.4000244
-offset_top = 0.44000244
-offset_right = 0.3199463
-offset_bottom = 0.07998657
-theme_override_constants/outline_size = 12
-theme_override_font_sizes/font_size = 32
-text = "0 / 2"
-horizontal_alignment = 2
 
 [node name="HUD" type="Control" parent="UI" unique_id=880767974]
 layout_mode = 3
@@ -237,14 +237,14 @@ text = "end turn"
 [node name="ConfirmDiscardButton" type="Button" parent="UI" unique_id=1253456435]
 visible = false
 anchors_preset = -1
-anchor_left = 0.42700002
-anchor_top = 0.123
-anchor_right = 0.58500004
-anchor_bottom = 0.186
-offset_left = -0.84002686
-offset_top = 0.16000366
-offset_right = 0.79992676
-offset_bottom = 0.11999512
+anchor_left = 0.015000001
+anchor_top = 0.78800005
+anchor_right = 0.13900001
+anchor_bottom = 0.85600007
+offset_left = 0.19999886
+offset_top = -0.040039063
+offset_right = -0.8800354
+offset_bottom = -0.4800415
 theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 32
 text = "discard cards"
@@ -270,15 +270,29 @@ offset_bottom = 23.0
 visible = false
 anchors_preset = -1
 anchor_left = 0.013
-anchor_top = 0.86300004
+anchor_top = 0.78900003
 anchor_right = 0.13700001
-anchor_bottom = 0.93200004
-offset_left = 0.03999901
-offset_top = -0.040039063
-offset_right = -0.040008545
-offset_bottom = 0.4399414
+anchor_bottom = 0.85800004
+offset_left = 1.039999
+offset_top = -0.12005615
+offset_right = 0.95999146
+offset_bottom = 0.35998535
 theme_override_font_sizes/font_size = 32
 text = "Switch"
+
+[node name="CancelButton" type="Button" parent="UI" unique_id=433077267]
+visible = false
+anchors_preset = -1
+anchor_left = 0.013
+anchor_top = 0.87500006
+anchor_right = 0.13700001
+anchor_bottom = 0.94400007
+offset_left = 0.03999901
+offset_top = -6.1035156e-05
+offset_right = -0.040008545
+offset_bottom = 0.47991943
+theme_override_font_sizes/font_size = 32
+text = "Cancel"
 
 [node name="FreeMoveUpButton" type="Button" parent="UI" unique_id=1465329974]
 visible = false

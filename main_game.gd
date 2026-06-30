@@ -9,6 +9,8 @@ extends Node3D
 @onready var switch_button = $UI/SwitchButton
 @onready var free_move_up_button = $UI/FreeMoveUpButton
 
+@onready var cancel_button = $UI/CancelButton
+
 @onready var ghost_slots_container = $GhostSlotsContainer
 @onready var ghost_slot_active = $GhostSlotsContainer/GhostSlot
 @onready var ghost_slot_bench = [
@@ -90,6 +92,8 @@ func _ready():
 	
 	if switch_button:
 		switch_button.pressed.connect(initiate_paid_switch)
+	if cancel_button:
+		cancel_button.pressed.connect(cancel_switching_discard) # WIRE IT UP!
 		
 	if discard_overlay:
 		discard_overlay.visible = false
@@ -522,11 +526,10 @@ func set_ghost_slots_visible(should_show: bool, is_pie: bool):
 	is_dragging_pie = (should_show and is_pie)
 	var should_be_visible = (should_show and is_pie)
 	
-	# Toggle the field drop mesh for ANY card drag
+	# QoL FIX: The pink mat ONLY appears for non-pies! Pies stay completely clean!
 	if is_instance_valid(field_drop_mesh):
-		field_drop_mesh.visible = should_show
+		field_drop_mesh.visible = (should_show and not is_pie)
 	
-	# Toggle each ghost slot individually (Node3D supports visible)
 	if has_node("GhostSlotsContainer"):
 		for slot in $GhostSlotsContainer.get_children():
 			slot.visible = should_be_visible
@@ -545,14 +548,17 @@ func initiate_paid_switch():
 		print("You need at least 2 cards in your hand to pay for a switch!")
 		return
 		
-	print("Select exactly 2 cards to discard. Press ESCAPE to cancel.")
 	is_discard_phase = true
 	current_discard_mode = DiscardMode.SWITCHING
 	marked_for_discard.clear()
 	
+	# BUTTON SWAP: Hide the layout UI, reveal the discard confirm UI in its place!
+	if switch_button: switch_button.visible = false
+	# (Leave Cancel button visible so they can still back out easily!)
+	
 	if discard_overlay: discard_overlay.visible = true
-	update_discard_ui_counters()
 	if confirm_discard_button: confirm_discard_button.visible = true
+	update_discard_ui_counters()
 
 func _unhandled_input(event: InputEvent):
 	# ui_cancel is the default Godot action for the Escape key
@@ -561,7 +567,7 @@ func _unhandled_input(event: InputEvent):
 			cancel_switching_discard()
 
 func cancel_switching_discard():
-	print("Switching cancelled! No energy spent.")
+	print("Action cancelled!")
 	is_discard_phase = false
 	current_discard_mode = DiscardMode.NONE
 	
@@ -572,33 +578,44 @@ func cancel_switching_discard():
 	
 	if discard_overlay: discard_overlay.visible = false
 	if confirm_discard_button: confirm_discard_button.visible = false
-
+	
+	# QoL FIX: Hitting escape purges the entire board layout state perfectly!
+	clear_field_selection()
+	
 # ==========================================================
 # 🔄 FIELD SWITCHING & MOVEMENT LOGIC
 # ==========================================================
 
 func handle_field_pie_clicked(pie: Node3D):
-	if is_discard_phase: return # No selecting field pieces while discarding!
+	if is_discard_phase: return
 	
-	# Clicking the same pie twice deselects it
+	# QoL FIX: Clicking the primary pie again completely wipes the selection
 	if selected_field_pie == pie:
 		clear_field_selection()
 		return
 		
-	# First click: Select the starting pie
+	# QoL FIX: Clicking the target pie again cleanly deselects just the target!
+	if target_field_pie == pie:
+		pie.set_selection_highlight(false)
+		target_field_pie = null
+		evaluate_switch_validity()
+		return
+		
+	# First click
 	if selected_field_pie == null:
 		selected_field_pie = pie
 		pie.set_selection_highlight(true)
-		set_ghost_slots_visible(true, true) # Reveal destinations
+		set_ghost_slots_visible(true, true)
 		
-		# Check for FREE move: Is it on the bench, and is Active empty?
+		if cancel_button: cancel_button.visible = true # Show cancel option immediately!
+		
 		if active_slot_card == null and bench_slot_cards.has(pie):
 			if free_move_up_button: free_move_up_button.visible = true
 			
-	# Second click: Select a target pie to swap with
+	# Second click
 	else:
 		if target_field_pie != null:
-			target_field_pie.set_selection_highlight(false) # Clear old target
+			target_field_pie.set_selection_highlight(false)
 			
 		target_field_pie = pie
 		target_ghost_slot = null
@@ -630,6 +647,7 @@ func handle_ghost_slot_clicked(slot: Node3D):
 func evaluate_switch_validity():
 	if switch_button: switch_button.visible = false
 	if free_move_up_button: free_move_up_button.visible = false
+	if cancel_button: cancel_button.visible = true # Always visible while building a selection
 	
 	var is_start_active = (selected_field_pie == active_slot_card)
 	var is_target_active = false
@@ -639,7 +657,6 @@ func evaluate_switch_validity():
 	elif target_ghost_slot != null:
 		is_target_active = target_ghost_slot.is_active_slot
 		
-	# A paid switch is ONLY valid if exactly one side of the equation involves the Active Slot
 	if (is_start_active and not is_target_active) or (not is_start_active and is_target_active):
 		if switch_button: switch_button.visible = true
 
@@ -653,7 +670,11 @@ func clear_field_selection():
 	
 	if switch_button: switch_button.visible = false
 	if free_move_up_button: free_move_up_button.visible = false
+	if cancel_button: cancel_button.visible = false
+	
+	# TOTAL CLEANUP: Wipe ghost slots and pink mesh!
 	set_ghost_slots_visible(false, true)
+	if is_instance_valid(field_drop_mesh): field_drop_mesh.visible = false
 
 func execute_free_move_up():
 	print("Executing Free Move to Active Slot!")
