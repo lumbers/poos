@@ -873,6 +873,8 @@ func spawn_dummy_opponent():
 	dummy_card.is_opponent = true # Tags it as enemy property
 	add_child(dummy_card)
 	
+	dummy_card.load_card_data()
+	
 	dummy_card.global_position = opponent_active_marker.global_position
 	dummy_card.global_transform.basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90))).rotated(Vector3.UP, deg_to_rad(180))
 	dummy_card.scale = Vector3(0.85, 0.85, 0.85)
