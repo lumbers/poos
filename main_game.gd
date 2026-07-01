@@ -77,6 +77,8 @@ var current_energy: int = 3 :
 		current_energy = value
 		update_hud_display()
 
+var has_attacked_this_turn: bool = false # <--- ADD THIS NEW TRACKER
+
 # Place this at the top of main_game.gd with your other global variables!
 var is_dragging_pie: bool = false
 var current_hovered_ghost_slot: Area3D = null
@@ -94,55 +96,47 @@ var is_free_move_active: bool = false
 
 func _ready():
 	get_viewport().physics_object_picking = true
-	deck_3d.deck_clicked.connect(_on_deck_clicked)
-	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	
-	if free_move_up_button:
-		free_move_up_button.pressed.connect(execute_free_move_up)
-	
-	if confirm_discard_button:
+	# --- 1. SAFELY CONNECT ALL BUTTONS & SIGNALS ---
+	if deck_3d and not deck_3d.deck_clicked.is_connected(_on_deck_clicked):
+		deck_3d.deck_clicked.connect(_on_deck_clicked)
+		
+	if end_turn_button and not end_turn_button.pressed.is_connected(_on_end_turn_pressed):
+		end_turn_button.pressed.connect(_on_end_turn_pressed)
+		
+	# FIX: Re-connected your Confirm Discard button!
+	if confirm_discard_button and not confirm_discard_button.pressed.is_connected(_on_confirm_discard_pressed):
 		confirm_discard_button.pressed.connect(_on_confirm_discard_pressed)
-	
-	if switch_button:
-		switch_button.pressed.connect(initiate_paid_switch)
-	if cancel_button:
-		cancel_button.pressed.connect(cancel_switching_discard) # WIRE IT UP!
 		
-	if discard_overlay:
-		discard_overlay.visible = false
-		
-	activate_field_drop_zone(false)
-	
-	# FIX: Start the match with the new turn logic to grant the free card!
-	start_new_turn()
-	
-	# Hide all ghost slots at game start
-	if has_node("GhostSlotsContainer"):
-		for slot in $GhostSlotsContainer.get_children():
-			slot.visible = false
-			
-	# Force the drop zone indicator hidden at start
-	if is_instance_valid(field_drop_mesh):
-		field_drop_mesh.visible = false
-		
-	if attack_button:
+	# FIX: Removed the duplicate Attack button connections!
+	if attack_button and not attack_button.pressed.is_connected(execute_basic_attack):
 		attack_button.pressed.connect(execute_basic_attack)
-	
-	if attack_button: attack_button.pressed.connect(execute_basic_attack)
 		
-	# --- ADD THESE 4 LINES TO FORCE A CLEAN UI ON STARTUP ---
+	if switch_button and not switch_button.pressed.is_connected(initiate_paid_switch):
+		switch_button.pressed.connect(initiate_paid_switch)
+		
+	if free_move_up_button and not free_move_up_button.pressed.is_connected(execute_free_move_up):
+		free_move_up_button.pressed.connect(execute_free_move_up)
+		
+	if cancel_button and not cancel_button.pressed.is_connected(cancel_switching_discard):
+		cancel_button.pressed.connect(cancel_switching_discard)
+		
+	# --- 2. INITIALIZE CLEAN UI VISIBILITY ---
+	if discard_overlay: discard_overlay.visible = false
 	if attack_button: attack_button.visible = false
 	if switch_button: switch_button.visible = false
 	if free_move_up_button: free_move_up_button.visible = false
 	if cancel_button: cancel_button.visible = false
-		
+	if is_instance_valid(field_drop_mesh): field_drop_mesh.visible = false
+	
+	if has_node("GhostSlotsContainer"):
+		for slot in $GhostSlotsContainer.get_children():
+			slot.visible = false
+			
+	# --- 3. START THE MATCH (Exactly Once!) ---
 	activate_field_drop_zone(false)
 	start_new_turn()
 	spawn_dummy_opponent()
-	
-	activate_field_drop_zone(false)
-	start_new_turn()
-	spawn_dummy_opponent() # <-- ADD THIS HERE
 
 func update_hud_display():
 	if actions_label:
@@ -416,14 +410,23 @@ func activate_field_drop_zone(should_activate: bool):
 # Add this new function anywhere in your main_game.gd script:
 func start_new_turn():
 	print("--- STARTING NEW TURN ---")
-	# 1. Reset actions/energy pool back to 3
 	current_energy = 3
+	has_attacked_this_turn = false # <--- RESET THE ATTACK LOCKOUT HERE
 	
-	# 2. TRIGGER THE FREE DRAW:
-	# We duplicate the card drawing block here, but we DO NOT deduct any energy points!
+	# --- 1. HARD RESET ALL SELECTION STATES ---
+	is_discard_phase = false
+	current_discard_mode = DiscardMode.NONE
+	clear_field_selection() # Forces the UI and highlights to reset!
+	
+	# --- 2. PROTECTED DUMMY RESPAWN ---
+	# This ensures a new dummy ONLY spawns if the old one was actually killed!
+	if opponent_active_card == null:
+		spawn_dummy_opponent()
+	
+	# --- 3. THE FREE DRAW (Keep your existing draw code here!) ---
 	if card_pool.is_empty():
 		return
-		
+	
 	var random_data = card_pool.pick_random()
 	var new_card = card_manager.card_scene.instantiate()
 	new_card.card_info = random_data
@@ -599,16 +602,20 @@ func set_ghost_slots_visible(should_show: bool, is_pie: bool):
 func initiate_paid_switch():
 	if current_energy < 1:
 		print("Not enough energy to switch!")
+		# Trigger the spammable floating text right over the Switch button!
+		if switch_button:
+			spawn_floating_error_text("You have no more actions left!", switch_button.global_position)
 		return
+		
 	if card_manager.get_child_count() < 2:
 		print("You need at least 2 cards in your hand to pay for a switch!")
+		# You can also add another text spawn here for "Not enough cards!" if you want!
 		return
 		
 	is_discard_phase = true
 	current_discard_mode = DiscardMode.SWITCHING
 	marked_for_discard.clear()
 	
-	# BUTTON SWAP: Hide Switch, reveal the Discard Confirm in its exact place!
 	if switch_button: switch_button.visible = false
 	if discard_overlay: discard_overlay.visible = true
 	if confirm_discard_button: confirm_discard_button.visible = true
@@ -878,17 +885,55 @@ func spawn_dummy_opponent():
 		dummy_card.update_field_hp_display()
 
 func execute_basic_attack():
+	# 1. ENFORCE THE 1-ATTACK-PER-TURN LIMIT
+	if has_attacked_this_turn:
+		print("Already attacked this turn!")
+		if attack_button:
+			spawn_floating_error_text("You can only attack once per turn!", attack_button.global_position)
+		return
+
+	# 2. ENFORCE THE ACTION COST
 	if current_energy < 1:
 		print("Not enough actions to attack!")
+		if attack_button:
+			spawn_floating_error_text("You have no more actions left!", attack_button.global_position)
 		return
 		
-	# FIX 5: Hard block attacks if the active slot is empty!
+	# 3. SAFETY CHECK
 	if active_slot_card == null:
 		print("You have no Active Pie to attack with!")
 		return
 		
+	# 4. EXECUTE THE ATTACK
 	if selected_field_pie == active_slot_card and opponent_active_card != null:
 		current_energy -= 1
+		has_attacked_this_turn = true # <--- LOCK OUT FURTHER ATTACKS!
+		
 		print("Player attacks Dummy for 100 damage!")
 		opponent_active_card.take_damage(100)
 		update_hud_display()
+		
+		# (We leave the pie selected so you can spam the button to see the new error text!)
+
+func spawn_floating_error_text(message: String, spawn_pos: Vector2):
+	var error_label = Label.new()
+	error_label.text = message
+	
+	# Style it with bright red and a thick black outline
+	error_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2)) 
+	error_label.add_theme_font_size_override("font_size", 22)
+	error_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	error_label.add_theme_constant_override("outline_size", 5)
+	
+	# Attach it to the UI and place it over the button
+	if has_node("UI"):
+		$UI.add_child(error_label)
+	error_label.global_position = spawn_pos
+	
+	# Animate it floating up and fading out
+	var tween = create_tween().set_parallel(true)
+	tween.tween_property(error_label, "global_position", spawn_pos + Vector2(0, -60), 0.8).set_ease(Tween.EASE_OUT)
+	tween.tween_property(error_label, "modulate:a", 0.0, 0.8).set_ease(Tween.EASE_IN)
+	
+	# Delete it automatically when the animation finishes so it doesn't leak memory
+	tween.chain().tween_callback(error_label.queue_free)
