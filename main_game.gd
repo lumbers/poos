@@ -41,6 +41,11 @@ extends Node3D
 @onready var discard_title = $UI/DiscardOverlay/DiscardTitle
 @onready var discard_counter = $UI/DiscardOverlay/DiscardCounter
 
+@onready var player_lp_label = $UI/HUD/PlayerLPLabel
+@onready var opponent_lp_label = $UI/HUD/OpponentLPLabel
+@onready var attack_button = $UI/AttackButton
+@onready var opponent_active_marker = $BoardSlots/OpponentActiveSlot
+
 # --- NEW FIELD SELECTION TRACKERS ---
 var selected_field_pie: Node3D = null
 var target_field_pie: Node3D = null
@@ -50,8 +55,17 @@ var target_ghost_slot: Node3D = null
 @onready var discard_overlay = $UI/DiscardOverlay
 @onready var confirm_discard_button = $UI/ConfirmDiscardButton
 
+# --- ADD THESE NEAR YOUR OTHER MARKERS AND POOLS ---
+@onready var opponent_discard_pile_marker = $BoardSlots/OpponentDiscardPileMarker
+var opponent_graveyard_pool: Array[Node3D] = []
+
 var active_slot_card: Node3D = null
 var bench_slot_cards: Array[Node3D] = [null, null, null]
+
+# --- ADD THESE NEW LP & OPPONENT TRACKERS ---
+var player_lp: int = 1500
+var opponent_lp: int = 1500
+var opponent_active_card: Node3D = null
 
 # Inside main_game.gd near your other array trackers:
 var discard_graveyard_pool: Array[Node3D] = []
@@ -111,14 +125,35 @@ func _ready():
 	if is_instance_valid(field_drop_mesh):
 		field_drop_mesh.visible = false
 		
+	if attack_button:
+		attack_button.pressed.connect(execute_basic_attack)
+	
+	if attack_button: attack_button.pressed.connect(execute_basic_attack)
+		
+	# --- ADD THESE 4 LINES TO FORCE A CLEAN UI ON STARTUP ---
+	if attack_button: attack_button.visible = false
+	if switch_button: switch_button.visible = false
+	if free_move_up_button: free_move_up_button.visible = false
+	if cancel_button: cancel_button.visible = false
+		
 	activate_field_drop_zone(false)
 	start_new_turn()
+	spawn_dummy_opponent()
+	
+	activate_field_drop_zone(false)
+	start_new_turn()
+	spawn_dummy_opponent() # <-- ADD THIS HERE
 
 func update_hud_display():
 	if actions_label:
 		actions_label.text = str(current_energy) + "/3 actions left"
 	if hand_count_label and card_manager:
 		hand_count_label.text = str(card_manager.get_child_count()) + "/7"
+	# --- NEW LP DISPLAYS ---
+	if player_lp_label:
+		player_lp_label.text = "Player LP: " + str(player_lp)
+	if opponent_lp_label:
+		opponent_lp_label.text = "Enemy LP: " + str(opponent_lp)
 
 func _on_deck_clicked():
 	if is_discard_phase: return # Block drawing while forced to discard!
@@ -272,18 +307,23 @@ func try_place_pie_on_field(card_node: Node3D):
 # --- REVISED END TURN BUTTON CLICKED ---
 # Find your _on_end_turn_pressed() function and update it to this:
 func _on_end_turn_pressed():
+	# --- FIX 1: IMMEDIATELY CANCEL ANY SWITCHING/SELECTION ---
+	if current_discard_mode == DiscardMode.SWITCHING:
+		cancel_switching_discard()
+	clear_field_selection()
+	
 	var hand_count = card_manager.get_child_count()
 	
 	if hand_count > max_hand_size:
 		print("Hand size exceeds limit! Entering Discard Phase.")
 		is_discard_phase = true
-		current_discard_mode = DiscardMode.HAND_LIMIT # <-- THIS IS THE NEW LINE
+		current_discard_mode = DiscardMode.HAND_LIMIT 
 		marked_for_discard.clear()
 		if discard_overlay:
 			discard_overlay.visible = true
-			update_discard_ui_counters()
 		if confirm_discard_button:
 			confirm_discard_button.visible = true
+		update_discard_ui_counters() # Make sure to update the text!
 	else:
 		start_new_turn()
 
@@ -414,34 +454,51 @@ func start_new_turn():
 func handle_pie_death(card_node: Node3D):
 	print("Pie has fainted! Sweeping: ", card_node.card_info.card_name)
 	
-	if active_slot_card == card_node:
-		active_slot_card = null
-	else:
-		for i in range(bench_slot_cards.size()):
-			if bench_slot_cards[i] == card_node:
-				bench_slot_cards[i] = null
-				break
-				
+	# FIX: Instantly hide the HP tracker so a "0" doesn't float into the graveyard
 	if card_node.has_node("HPTracker"):
 		card_node.get_node("HPTracker").visible = false
-		
-	# Add the card to the pool immediately
-	discard_graveyard_pool.append(card_node)
 	
-	var death_tween = create_tween().set_parallel(true)
-	death_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	var penalty = card_node.get("peak_hp")
+	if penalty == null: penalty = 0
 	
+	var is_enemy = card_node.get("is_opponent") == true
+	var target_destination: Vector3
 	var flat_layout = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
 	var target_pile_scale = Vector3(0.85, 0.85, 0.85)
 	
-	# Send it flat to the baseline destination marker
-	death_tween.tween_property(card_node, "global_position", discard_pile_marker.global_position, 0.35)
+	if is_enemy:
+		opponent_lp -= penalty
+		opponent_active_card = null
+		opponent_graveyard_pool.append(card_node)
+		if opponent_discard_pile_marker:
+			target_destination = opponent_discard_pile_marker.global_position
+		print("Opponent loses ", penalty, " LP! Remaining: ", opponent_lp)
+	else:
+		player_lp -= penalty
+		discard_graveyard_pool.append(card_node)
+		target_destination = discard_pile_marker.global_position
+		print("Player loses ", penalty, " LP! Remaining: ", player_lp)
+		
+		# Clear slot references for player
+		if active_slot_card == card_node:
+			active_slot_card = null
+		else:
+			for i in range(bench_slot_cards.size()):
+				if bench_slot_cards[i] == card_node:
+					bench_slot_cards[i] = null
+					break
+					
+	update_hud_display()
+	
+	var death_tween = create_tween().set_parallel(true)
+	death_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	death_tween.tween_property(card_node, "global_position", target_destination, 0.35)
 	death_tween.tween_property(card_node, "global_transform:basis", flat_layout, 0.35)
 	death_tween.tween_property(card_node, "scale", target_pile_scale, 0.35)
 	
-	# CRITICAL FIX: Wait for the tween flight to completely finish, THEN run priorities!
 	death_tween.chain().tween_callback(func():
-		update_graveyard_mouse_priorities()        # THEN reorder
+		if not is_enemy:
+			update_graveyard_mouse_priorities()
 		if card_node.has_node("Area3D"):
 			card_node.get_node("Area3D").input_ray_pickable = true
 	)
@@ -586,45 +643,44 @@ func cancel_switching_discard():
 func handle_field_pie_clicked(pie: Node3D):
 	if is_discard_phase: return
 	
-	# --- 1. DESELECTING THE PRIMARY CARD ---
+	# FIX: Completely ignore clicks on the opponent's cards!
+	if pie.get("is_opponent") == true:
+		print("You cannot select the opponent's cards!")
+		return
+	
+	# 1. DESELECTING THE PRIMARY CARD
 	if selected_field_pie == pie:
 		pie.set_selection_highlight(false)
-		
-		# If we have a target card selected, shift it to be the new primary!
 		if target_field_pie != null:
 			selected_field_pie = target_field_pie
 			target_field_pie = null
 			target_ghost_slot = null
 			evaluate_switch_validity()
 		else:
-			# If nothing else is selected, completely wipe the board state
 			clear_field_selection()
 		return
 		
-	# --- 2. DESELECTING THE TARGET CARD ---
+	# 2. DESELECTING THE TARGET CARD
 	if target_field_pie == pie:
 		pie.set_selection_highlight(false)
 		target_field_pie = null
 		evaluate_switch_validity()
 		return
 		
-	# --- 3. SELECTING THE FIRST CARD ---
+	# 3. SELECTING THE FIRST CARD
 	if selected_field_pie == null:
 		selected_field_pie = pie
 		pie.set_selection_highlight(true)
-		
-		# Reveal ghost blueprints for Pies, but NO PINK MESH!
 		set_ghost_slots_visible(true, true) 
-		if cancel_button: cancel_button.visible = true
 		
-		if active_slot_card == null and bench_slot_cards.has(pie):
-			if free_move_up_button: free_move_up_button.visible = true
-			
-	# --- 4. SELECTING A NEW TARGET CARD ---
+		# FIX: Removed the isolated button logic here. 
+		# We just call the evaluator to handle all UI perfectly!
+		evaluate_switch_validity()
+		
+	# 4. SELECTING A NEW TARGET CARD
 	else:
 		if target_field_pie != null:
 			target_field_pie.set_selection_highlight(false)
-			
 		target_field_pie = pie
 		target_ghost_slot = null
 		pie.set_selection_highlight(true)
@@ -653,21 +709,39 @@ func handle_ghost_slot_clicked(slot: Node3D):
 		evaluate_switch_validity()
 
 func evaluate_switch_validity():
+	# 1. Hide everything by default
 	if switch_button: switch_button.visible = false
 	if free_move_up_button: free_move_up_button.visible = false
+	if attack_button: attack_button.visible = false
 	if cancel_button: cancel_button.visible = true 
 	
-	var is_start_active = (selected_field_pie == active_slot_card)
-	var is_target_active = false
-	
-	if target_field_pie != null:
-		is_target_active = (target_field_pie == active_slot_card)
-	elif target_ghost_slot != null:
-		is_target_active = target_ghost_slot.is_active_slot
+	# 2. RULE: FREE MOVE UP
+	# Trigger: Active slot is empty, Bench pie is selected, NO target is selected.
+	if active_slot_card == null and selected_field_pie != null and bench_slot_cards.has(selected_field_pie) and target_field_pie == null and target_ghost_slot == null:
+		if free_move_up_button: free_move_up_button.visible = true
+		return # Stop checking! We don't want other buttons fighting this.
 		
-	# Valid if exactly one side is the active slot
-	if (is_start_active and not is_target_active) or (not is_start_active and is_target_active):
-		if switch_button: switch_button.visible = true
+	# 3. RULE: ATTACK
+	# Trigger: Active pie is selected, NO target is selected, Opponent exists.
+	if active_slot_card != null and selected_field_pie == active_slot_card and target_field_pie == null and target_ghost_slot == null:
+		if opponent_active_card != null:
+			if attack_button: attack_button.visible = true
+		return # Stop checking!
+		
+	# 4. RULE: SWITCH
+	# Trigger: A primary pie AND a target (pie or ghost) are selected.
+	if target_field_pie != null or target_ghost_slot != null:
+		var is_start_active = (selected_field_pie == active_slot_card)
+		var is_target_active = false
+		
+		if target_field_pie != null:
+			is_target_active = (target_field_pie == active_slot_card)
+		elif target_ghost_slot != null:
+			is_target_active = target_ghost_slot.is_active_slot
+			
+		# Exactly one selected slot must be the active slot
+		if (is_start_active and not is_target_active) or (not is_start_active and is_target_active):
+			if switch_button: switch_button.visible = true
 
 func clear_field_selection():
 	if selected_field_pie: selected_field_pie.set_selection_highlight(false)
@@ -679,9 +753,9 @@ func clear_field_selection():
 	
 	if switch_button: switch_button.visible = false
 	if free_move_up_button: free_move_up_button.visible = false
+	if attack_button: attack_button.visible = false
 	if cancel_button: cancel_button.visible = false
 	
-	# TOTAL CLEANUP: Wipe ghost slots and force pink mesh off
 	set_ghost_slots_visible(false, true)
 	if is_instance_valid(field_drop_mesh): field_drop_mesh.visible = false
 	
@@ -771,3 +845,50 @@ func execute_paid_switch():
 	# --- FIX 4: CLEAN UP ALL HIGHLIGHTS AND GHOST GRIDS ---
 	clear_field_selection()
 	set_ghost_slots_visible(false, true)
+
+func spawn_dummy_opponent():
+	if card_pool.is_empty() or opponent_active_marker == null: return
+	
+	# FIX: Filter the deck so we ONLY grab Pie cards!
+	var possible_dummies = []
+	for card_data in card_pool:
+		if card_data.card_type.to_lower() == "pie":
+			possible_dummies.append(card_data)
+			
+	if possible_dummies.is_empty():
+		print("No pies in deck to use as dummy!")
+		return
+		
+	var dummy_data = possible_dummies.pick_random() 
+	var dummy_card = card_manager.card_scene.instantiate()
+	
+	dummy_card.card_info = dummy_data
+	dummy_card.is_opponent = true # Tags it as enemy property
+	add_child(dummy_card)
+	
+	dummy_card.global_position = opponent_active_marker.global_position
+	dummy_card.global_transform.basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90))).rotated(Vector3.UP, deg_to_rad(180))
+	dummy_card.scale = Vector3(0.85, 0.85, 0.85)
+	
+	dummy_card.is_on_board = true
+	opponent_active_card = dummy_card
+	
+	await get_tree().process_frame
+	if dummy_card.has_method("update_field_hp_display"):
+		dummy_card.update_field_hp_display()
+
+func execute_basic_attack():
+	if current_energy < 1:
+		print("Not enough actions to attack!")
+		return
+		
+	# FIX 5: Hard block attacks if the active slot is empty!
+	if active_slot_card == null:
+		print("You have no Active Pie to attack with!")
+		return
+		
+	if selected_field_pie == active_slot_card and opponent_active_card != null:
+		current_energy -= 1
+		print("Player attacks Dummy for 100 damage!")
+		opponent_active_card.take_damage(100)
+		update_hud_display()

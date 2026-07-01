@@ -1,8 +1,5 @@
 extends Node3D
 
-var is_dragging: bool = false
-var is_on_board: bool = false 
-
 @onready var main_game = get_node("/root/MainGame")
 
 @export var card_info: CardData
@@ -10,7 +7,10 @@ var is_on_board: bool = false
 
 # --- NEW HP FLOATING TRACKER NODE ---
 @onready var hp_tracker = $HPTracker
-
+var is_opponent: bool = false
+var peak_hp: int = 0
+var is_dragging: bool = false
+var is_on_board: bool = false 
 var default_position: Vector3
 var is_hovered: bool = false
 
@@ -18,7 +18,6 @@ var is_hovered: bool = false
 var current_hp: int = 0
 
 func _ready():
-	# 1. Grab references and wire up signals IMMEDIATELY so no inputs are dropped!
 	main_game = get_node_or_null("/root/MainGame")
 	
 	if has_node("Area3D"):
@@ -26,13 +25,12 @@ func _ready():
 		$Area3D.mouse_exited.connect(_on_mouse_exited)
 		$Area3D.input_event.connect(_on_input_event)
 		
-	# 2. NOW wait a frame for resources/sub-viewports to cook
 	await get_tree().process_frame
 	
-	# 3. Safely initialize your data structures
 	if card_info != null:
 		load_card_data()
 		current_hp = card_info.max_hp
+		peak_hp = current_hp # Set baseline Peak HP
 		
 	if hp_tracker:
 		hp_tracker.visible = false
@@ -51,9 +49,10 @@ func update_field_hp_display():
 
 # --- NEW FUNCTION TO HANDLE HEALING / DAMAGE OVER TIME ---
 func heal_pie(amount: int):
-	# Because Pies can be over-healed past their starting max_hp baseline,
-	# we simply add directly to the current pool with no upper ceiling clamping!
 	current_hp += amount
+	# Update Peak HP if we healed over our previous maximum!
+	if current_hp > peak_hp:
+		peak_hp = current_hp
 	update_field_hp_display()
 
 func take_damage(amount: int):

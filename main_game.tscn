@@ -135,6 +135,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 1.2374023)
 [node name="BenchSlot3" type="Marker3D" parent="BoardSlots" unique_id=147112521]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8834773, 0.1, 1.2374023)
 
+[node name="OpponentActiveSlot" type="Marker3D" parent="BoardSlots" unique_id=1443378709]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -0.959)
+
+[node name="OpponentDiscardPileMarker" type="Marker3D" parent="BoardSlots" unique_id=448895587]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8703926, 0.1, -1.9849682)
+
 [node name="DiscardPileMarker" type="Marker3D" parent="." unique_id=389567418]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.033, 0.051374882, 1.775)
 
@@ -234,6 +240,29 @@ theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 32
 text = "end turn"
 
+[node name="PlayerLPLabel" type="Label" parent="UI/HUD" unique_id=1073904039]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.33800003
+anchor_right = 0.43
+anchor_bottom = 0.05
+offset_left = 0.039916992
+offset_right = 0.39996338
+horizontal_alignment = 1
+
+[node name="OpponentLPLabel" type="Label" parent="UI/HUD" unique_id=1016529513]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.569
+anchor_top = 0.001
+anchor_right = 0.661
+anchor_bottom = 0.051000003
+offset_left = -0.47998047
+offset_top = -0.08000004
+offset_right = -0.11999512
+offset_bottom = -0.08000183
+horizontal_alignment = 1
+
 [node name="ConfirmDiscardButton" type="Button" parent="UI" unique_id=1253456435]
 visible = false
 anchors_preset = -1
@@ -279,6 +308,19 @@ offset_right = 0.95999146
 offset_bottom = 0.35998535
 theme_override_font_sizes/font_size = 32
 text = "Switch"
+
+[node name="AttackButton" type="Button" parent="UI" unique_id=1746875434]
+anchors_preset = -1
+anchor_left = 0.013
+anchor_top = 0.70600003
+anchor_right = 0.13700001
+anchor_bottom = 0.776
+offset_left = 1.039999
+offset_top = 0.5199585
+offset_right = 0.95999146
+offset_bottom = -0.08001709
+theme_override_font_sizes/font_size = 32
+text = "Attack"
 
 [node name="CancelButton" type="Button" parent="UI" unique_id=433077267]
 visible = false
