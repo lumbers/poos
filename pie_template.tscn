@@ -87,9 +87,9 @@ text = " sanic"
 [node name="Label3" type="Label" parent="." unique_id=1639267200]
 layout_mode = 0
 offset_left = 228.0
-offset_top = 468.0
-offset_right = 340.0
-offset_bottom = 494.0
+offset_top = 472.15
+offset_right = 339.99976
+offset_bottom = 498.15
 theme_override_constants/outline_size = 6
 text = "d money"
 horizontal_alignment = 2
@@ -121,10 +121,10 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 3.0
-offset_top = -213.0
-offset_right = -3.0
-offset_bottom = -45.0
+offset_left = 14.0
+offset_top = -197.0
+offset_right = -17.0
+offset_bottom = -26.0
 grow_horizontal = 2
 grow_vertical = 0
 
