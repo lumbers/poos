@@ -117,7 +117,9 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 11.0
 offset_top = -168.0
+offset_right = -14.0
 grow_horizontal = 2
 grow_vertical = 0
 
@@ -149,6 +151,7 @@ fit_content = true
 
 [node name="MoveDmg" type="RichTextLabel" parent="VBoxContainer/Move1Panel/MoveVBox/MoveHeader" unique_id=1546036811]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
@@ -187,6 +190,7 @@ fit_content = true
 
 [node name="MoveDmg" type="RichTextLabel" parent="VBoxContainer/Move2Panel/MoveVBox/MoveHeader" unique_id=132519064]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
