@@ -376,11 +376,20 @@ func load_card_data():
 			
 			if card_info.move1_name != "" or card_info.move1_dmg != "":
 				move1_panel.visible = true
-				var symbols = ""
-				if card_info.move1_is_equippable: symbols += "[E] "
-				if card_info.move1_has_cooldown: symbols += "[CD] "
 				
-				if m1_name: m1_name.text = "[b]" + symbols + card_info.move1_name + "[/b]"
+				# 1. Start with Underline [u] and Bold [b]
+				var formatted_name = "[u][b]"
+				
+				# 2. Add [E] to the front if equippable
+				if card_info.move1_is_equippable: formatted_name += "[E] "
+				
+				# 3. Add the actual name and close the underline/bold tags
+				formatted_name += card_info.move1_name + "[/b][/u]"
+				
+				# 4. Add [CD] to the back if it has a cooldown
+				if card_info.move1_has_cooldown: formatted_name += " [CD]"
+				
+				if m1_name: m1_name.text = formatted_name
 				if m1_dmg: m1_dmg.text = "[right][b]" + card_info.move1_dmg + "[/b][/right]"
 				if m1_desc: m1_desc.text = card_info.move1_desc
 			else:
@@ -395,11 +404,13 @@ func load_card_data():
 			
 			if card_info.move2_name != "" or card_info.move2_dmg != "":
 				move2_panel.visible = true
-				var symbols = ""
-				if card_info.move2_is_equippable: symbols += "[E] "
-				if card_info.move2_has_cooldown: symbols += "[CD] "
 				
-				if m2_name: m2_name.text = "[b]" + symbols + card_info.move2_name + "[/b]"
+				var formatted_name = "[u][b]"
+				if card_info.move2_is_equippable: formatted_name += "[E] "
+				formatted_name += card_info.move2_name + "[/b][/u]"
+				if card_info.move2_has_cooldown: formatted_name += " [CD]"
+				
+				if m2_name: m2_name.text = formatted_name
 				if m2_dmg: m2_dmg.text = "[right][b]" + card_info.move2_dmg + "[/b][/right]"
 				if m2_desc: m2_desc.text = card_info.move2_desc
 			else:

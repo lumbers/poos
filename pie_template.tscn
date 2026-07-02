@@ -23,6 +23,10 @@ border_width_bottom = 10
 border_color = Color(1, 1, 1, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7cvae"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
@@ -117,9 +121,10 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 11.0
-offset_top = -168.0
-offset_right = -14.0
+offset_left = 3.0
+offset_top = -213.0
+offset_right = -3.0
+offset_bottom = -45.0
 grow_horizontal = 2
 grow_vertical = 0
 
@@ -135,6 +140,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_7cvae")
 
 [node name="MoveVBox" type="VBoxContainer" parent="VBoxContainer/Move1Panel" unique_id=550175558]
 layout_mode = 2
+theme_override_constants/separation = 1
 
 [node name="MoveHeader" type="HBoxContainer" parent="VBoxContainer/Move1Panel/MoveVBox" unique_id=1474554733]
 layout_mode = 2
@@ -143,7 +149,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/outline_size = 3
-theme_override_constants/underline_alpha = 50
+theme_override_constants/underline_alpha = 100
 theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
 text = "boomshakalaka:"
@@ -174,6 +180,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_7cvae")
 
 [node name="MoveVBox" type="VBoxContainer" parent="VBoxContainer/Move2Panel" unique_id=974064809]
 layout_mode = 2
+theme_override_constants/separation = 1
 
 [node name="MoveHeader" type="HBoxContainer" parent="VBoxContainer/Move2Panel/MoveVBox" unique_id=309944035]
 layout_mode = 2
@@ -182,7 +189,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/outline_size = 3
-theme_override_constants/underline_alpha = 50
+theme_override_constants/underline_alpha = 100
 theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
 text = "boomshakalaka:"
