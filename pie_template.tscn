@@ -29,13 +29,6 @@ border_width_right = 3
 border_width_bottom = 3
 border_color = Color(0, 0, 0, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g78p0"]
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0, 0, 0, 1)
-
 [node name="PieTemplate" type="Control" unique_id=1399480307]
 layout_mode = 3
 anchors_preset = 15
@@ -150,26 +143,61 @@ size_flags_horizontal = 3
 theme_override_constants/outline_size = 3
 theme_override_constants/underline_alpha = 50
 theme_override_font_sizes/normal_font_size = 20
+bbcode_enabled = true
 text = "boomshakalaka:"
 fit_content = true
 
 [node name="MoveDmg" type="RichTextLabel" parent="VBoxContainer/Move1Panel/MoveVBox/MoveHeader" unique_id=1546036811]
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/normal_font_size = 20
+bbcode_enabled = true
 text = "100"
 fit_content = true
 horizontal_alignment = 2
 
-[node name="RichTextLabel" type="RichTextLabel" parent="VBoxContainer/Move1Panel/MoveVBox" unique_id=1638954229]
+[node name="MoveDesc" type="RichTextLabel" parent="VBoxContainer/Move1Panel/MoveVBox" unique_id=1638954229]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/outline_size = 3
+bbcode_enabled = true
 text = "georgeous"
 fit_content = true
 
-[node name="Move2Panel" type="PanelContainer" parent="VBoxContainer" unique_id=382870030]
+[node name="Move2Panel" type="PanelContainer" parent="VBoxContainer" unique_id=1924534042]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_g78p0")
+theme_override_styles/panel = SubResource("StyleBoxFlat_7cvae")
+
+[node name="MoveVBox" type="VBoxContainer" parent="VBoxContainer/Move2Panel" unique_id=974064809]
+layout_mode = 2
+
+[node name="MoveHeader" type="HBoxContainer" parent="VBoxContainer/Move2Panel/MoveVBox" unique_id=309944035]
+layout_mode = 2
+
+[node name="MoveName" type="RichTextLabel" parent="VBoxContainer/Move2Panel/MoveVBox/MoveHeader" unique_id=1299043497]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/outline_size = 3
+theme_override_constants/underline_alpha = 50
+theme_override_font_sizes/normal_font_size = 20
+bbcode_enabled = true
+text = "boomshakalaka:"
+fit_content = true
+
+[node name="MoveDmg" type="RichTextLabel" parent="VBoxContainer/Move2Panel/MoveVBox/MoveHeader" unique_id=132519064]
+layout_mode = 2
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/normal_font_size = 20
+bbcode_enabled = true
+text = "100"
+fit_content = true
+horizontal_alignment = 2
+
+[node name="MoveDesc" type="RichTextLabel" parent="VBoxContainer/Move2Panel/MoveVBox" unique_id=2010023505]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/outline_size = 3
+bbcode_enabled = true
+text = "georgeous"
+fit_content = true
