@@ -138,17 +138,38 @@ custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_7cvae")
 
-[node name="Move1Text" type="RichTextLabel" parent="VBoxContainer/Move1Panel" unique_id=117747173]
+[node name="MoveVBox" type="VBoxContainer" parent="VBoxContainer/Move1Panel" unique_id=550175558]
 layout_mode = 2
-bbcode_enabled = true
+
+[node name="MoveHeader" type="HBoxContainer" parent="VBoxContainer/Move1Panel/MoveVBox" unique_id=1474554733]
+layout_mode = 2
+
+[node name="MoveName" type="RichTextLabel" parent="VBoxContainer/Move1Panel/MoveVBox/MoveHeader" unique_id=88360303]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/outline_size = 3
+theme_override_constants/underline_alpha = 50
+theme_override_font_sizes/normal_font_size = 20
+text = "boomshakalaka:"
+fit_content = true
+
+[node name="MoveDmg" type="RichTextLabel" parent="VBoxContainer/Move1Panel/MoveVBox/MoveHeader" unique_id=1546036811]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/normal_font_size = 20
+text = "100"
+fit_content = true
+horizontal_alignment = 2
+
+[node name="RichTextLabel" type="RichTextLabel" parent="VBoxContainer/Move1Panel/MoveVBox" unique_id=1638954229]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/outline_size = 3
+text = "georgeous"
 fit_content = true
 
 [node name="Move2Panel" type="PanelContainer" parent="VBoxContainer" unique_id=382870030]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_g78p0")
-
-[node name="Move2Text" type="RichTextLabel" parent="VBoxContainer/Move2Panel" unique_id=1026984190]
-layout_mode = 2
-bbcode_enabled = true
-fit_content = true
