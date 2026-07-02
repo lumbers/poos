@@ -5,9 +5,15 @@
 
 [resource]
 script = ExtResource("2_ae2yy")
-card_name = "Gedagedago"
-card_type = "PIE"
+card_name = "nugget"
 max_hp = 200
-passives_and_attacks = "Nugget: 100"
 card_art = ExtResource("1_sw8ml")
+is_half_art = true
+passive_desc = "i like poop"
+move1_name = "wow"
+move1_dmg = "100"
+move1_desc = "hi guys"
+move2_name = "boom"
+move2_dmg = "1000"
+move2_desc = "yay"
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"

@@ -28,26 +28,33 @@ func _ready():
 	await get_tree().process_frame
 	
 	if card_info != null:
-		load_card_data()
+		# FIX: Set the HP values FIRST!
 		current_hp = card_info.max_hp
-		peak_hp = current_hp # Set baseline Peak HP
+		peak_hp = current_hp 
+		
+		# THEN build the card visuals so it uses the real HP!
+		load_card_data() 
 		
 	if hp_tracker:
 		hp_tracker.visible = false
 
 # --- NEW FUNCTION TO UPDATE AND DISPLAY HEALTH ---
+# --- UPDATE LIVE HP FUNCTION ---
 func update_field_hp_display():
-	if hp_tracker and card_info:
-		# Check if it's a Pie card (since only Pies have HP values)
+	# 1. Update floating 3D tracker & toggle visibility (Fixes Issue #1)
+	if hp_tracker and card_info != null:
 		if card_info.card_type.to_lower() == "pie":
-			# Display just the raw current HP number cleanly
 			hp_tracker.text = str(current_hp)
-			# Make it visible only if the card has officially been placed on the board
-			hp_tracker.visible = is_on_board
+			hp_tracker.visible = is_on_board # Only show if it's placed on the battlefield!
 		else:
 			hp_tracker.visible = false
-
+			
+	# 2. Update the 2D label directly on the new card face
+	var live_hp_label = $MeshInstance3D/SubViewport/PieTemplate/LiveHPLabel
+	if live_hp_label != null:
+		live_hp_label.text = "HP: " + str(current_hp)
 # --- NEW FUNCTION TO HANDLE HEALING / DAMAGE OVER TIME ---
+
 func heal_pie(amount: int):
 	current_hp += amount
 	# Update Peak HP if we healed over our previous maximum!
@@ -298,44 +305,87 @@ func _on_mouse_exited():
 			manager.arrange_hand()
 
 func load_card_data():
-	var template = $MeshInstance3D/SubViewport/PieTemplate
+	if card_info == null: return
 	
-	if card_info.use_full_paper_image == true:
-		template.get_node("Label").visible = false
-		template.get_node("NameHP").visible = false
-		template.get_node("RichTextLabel").visible = false
-		template.get_node("Label3").visible = false
-		
-		var art_rect = template.get_node("TextureRect")
-		art_rect.position = Vector2(0, 0)
-		art_rect.size = Vector2(350, 500)
-		art_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		art_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		
-		if card_info.card_art != null:
-			art_rect.texture = card_info.card_art
-	else:
-		template.get_node("Label").visible = true
-		template.get_node("RichTextLabel").visible = true
-		template.get_node("Label3").visible = true
-		template.get_node("NameHP").visible = true
-		
-		var art_rect = template.get_node("TextureRect")
-		art_rect.expand_mode = TextureRect.EXPAND_KEEP_SIZE
-		if card_info.card_art != null:
-			art_rect.texture = card_info.card_art
-			
+	var template = $MeshInstance3D/SubViewport/PieTemplate
+	if template == null: return
+	
+	# --- Fix #3: Update the Top-Left Card Type Label ---
+	if template.has_node("Label"):
 		template.get_node("Label").text = card_info.card_type
-		template.get_node("Label3").text = card_info.attribute
 		
-		var type_check = card_info.card_type.to_lower()
-		if type_check == "pie":
-			template.get_node("NameHP").text = card_info.card_name + "  HP:" + str(card_info.max_hp)
-			template.get_node("NameHP").horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-			var raw_text = card_info.passives_and_attacks
-			template.get_node("RichTextLabel").text = "[outline_size=5][outline_color=black]" + raw_text + "[/outline_color][/outline_size]"
+	# --- Fix #4: Hide text overlays for Full-Art cards ---
+	var is_full_art = not card_info.is_half_art
+	
+	if template.has_node("NameHP"): template.get_node("NameHP").visible = not is_full_art
+	if template.has_node("LiveHPLabel"): template.get_node("LiveHPLabel").visible = not is_full_art
+	if template.has_node("VBoxContainer"): template.get_node("VBoxContainer").visible = not is_full_art
+	if template.has_node("Label"): template.get_node("Label").visible = not is_full_art
+	if template.has_node("Label3"): template.get_node("Label3").visible = not is_full_art
+	
+	# --- 1. HANDLE CARD ARTWORK & CROPPING ---
+	var art_rect = template.get_node_or_null("TextureRect")
+	if art_rect and card_info.card_art != null:
+		art_rect.texture = card_info.card_art
+		
+		if card_info.is_half_art:
+			# Crop to the top half of the card
+			art_rect.size = Vector2(350, 250) 
+			art_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			art_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		else:
+			# Full art takes up the whole card
+			art_rect.position = Vector2(0, 0)
+			art_rect.size = Vector2(350, 500)
+			art_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			art_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			
+	# --- 2. POPULATE THE PIE DATA (Only if Half-Art) ---
+	if card_info.card_type.to_lower() == "pie" and card_info.is_half_art:
+		
+		# Fix #2: NameHP gets ONLY the name!
+		if template.has_node("NameHP"):
 			template.get_node("NameHP").text = card_info.card_name
-			template.get_node("NameHP").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			var raw_text = card_info.passives_and_attacks
-			template.get_node("RichTextLabel").text = "[outline_size=5][outline_color=black][center]" + raw_text + "[/center][/outline_color][/outline_size]"
+			
+		# Bottom Right Label gets the Size
+		if template.has_node("Label3"):
+			if card_info.pie_size != "":
+				template.get_node("Label3").text = card_info.pie_size
+			else:
+				template.get_node("Label3").text = card_info.attribute
+			
+		# Live HP setup
+		if template.has_node("LiveHPLabel"):
+			template.get_node("LiveHPLabel").text = "HP: " + str(current_hp)
+			
+		# Populate Passive
+		if template.has_node("VBoxContainer/PassiveText"):
+			var passive = template.get_node("VBoxContainer/PassiveText")
+			if card_info.passive_desc != "":
+				passive.text = "[b]Passive:[/b] " + card_info.passive_desc
+			else:
+				passive.text = ""
+				
+		# Populate Move 1
+		if template.has_node("VBoxContainer/Move1Text"):
+			var move1 = template.get_node("VBoxContainer/Move1Text")
+			if card_info.move1_name != "":
+				var symbols = ""
+				if card_info.move1_is_equippable: symbols += "[E] "
+				if card_info.move1_has_cooldown: symbols += "[CD] "
+				
+				move1.text = "[b]" + symbols + card_info.move1_name + "    " + card_info.move1_dmg + "[/b]\n" + card_info.move1_desc
+			else:
+				move1.text = ""
+				
+		# Populate Move 2
+		if template.has_node("VBoxContainer/Move2Text"):
+			var move2 = template.get_node("VBoxContainer/Move2Text")
+			if card_info.move2_name != "":
+				var symbols = ""
+				if card_info.move2_is_equippable: symbols += "[E] "
+				if card_info.move2_has_cooldown: symbols += "[CD] "
+				
+				move2.text = "[b]" + symbols + card_info.move2_name + "    " + card_info.move2_dmg + "[/b]\n" + card_info.move2_desc
+			else:
+				move2.text = ""

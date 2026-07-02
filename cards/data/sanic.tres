@@ -1,7 +1,20 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://lj4hlfmp3ta7"]
 
 [ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="1_bqkcb"]
+[ext_resource type="Texture2D" uid="uid://4r00odno2axj" path="res://cards/art/1x6quxvavxwd1.png" id="1_fnr72"]
 
 [resource]
 script = ExtResource("1_bqkcb")
+card_name = "Sanic"
+max_hp = 300
+card_art = ExtResource("1_fnr72")
+is_half_art = true
+passive_desc = "When SANIC enters the field, draw a card."
+move1_name = "spinball"
+move1_dmg = "100"
+move1_desc = "Draw a card."
+move1_has_cooldown = true
+move2_name = "speed"
+move2_dmg = "50"
+move2_desc = "dies"
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"

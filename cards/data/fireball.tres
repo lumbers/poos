@@ -5,11 +5,8 @@
 
 [resource]
 script = ExtResource("1_gj7i5")
-use_full_paper_image = true
 card_name = "Fireball"
-card_type = "spell"
-max_hp = 0
-attribute = ""
-passives_and_attacks = "Deal 100 dmg to 3 cards."
+card_type = "spesh"
 card_art = ExtResource("1_ak70l")
+use_full_paper_image = true
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"

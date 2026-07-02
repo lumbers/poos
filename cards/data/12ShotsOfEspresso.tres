@@ -5,11 +5,7 @@
 
 [resource]
 script = ExtResource("2_t316u")
-use_full_paper_image = true
-card_name = "12 Shots of Espresso"
-card_type = "item"
-max_hp = 0
-attribute = ""
-passives_and_attacks = "For this turn only, you may draw 2 cards and attack twice. "
+card_type = "spesh"
 card_art = ExtResource("1_6ipd1")
+use_full_paper_image = true
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"
