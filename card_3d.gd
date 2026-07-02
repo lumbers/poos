@@ -363,29 +363,37 @@ func load_card_data():
 			var passive = template.get_node("VBoxContainer/PassiveText")
 			if card_info.passive_desc != "":
 				passive.text = "[b]Passive:[/b] " + card_info.passive_desc
+				passive.visible = true
 			else:
-				passive.text = ""
+				passive.visible = false
 				
-		# Populate Move 1
-		if template.has_node("VBoxContainer/Move1Text"):
-			var move1 = template.get_node("VBoxContainer/Move1Text")
-			if card_info.move1_name != "":
+		# Populate Move 1 (Inside its new Panel!)
+		var move1_panel = template.get_node_or_null("VBoxContainer/Move1Panel")
+		var move1_text = template.get_node_or_null("VBoxContainer/Move1Panel/Move1Text")
+		
+		if move1_panel and move1_text:
+			# FIX: Now checks if name OR damage is filled out!
+			if card_info.move1_name != "" or card_info.move1_dmg != "":
+				move1_panel.visible = true
 				var symbols = ""
 				if card_info.move1_is_equippable: symbols += "[E] "
 				if card_info.move1_has_cooldown: symbols += "[CD] "
 				
-				move1.text = "[b]" + symbols + card_info.move1_name + "    " + card_info.move1_dmg + "[/b]\n" + card_info.move1_desc
+				move1_text.text = "[b]" + symbols + card_info.move1_name + "[/b]    " + card_info.move1_dmg + "\n" + card_info.move1_desc
 			else:
-				move1.text = ""
+				move1_panel.visible = false
 				
-		# Populate Move 2
-		if template.has_node("VBoxContainer/Move2Text"):
-			var move2 = template.get_node("VBoxContainer/Move2Text")
-			if card_info.move2_name != "":
+		# Populate Move 2 (Inside its new Panel!)
+		var move2_panel = template.get_node_or_null("VBoxContainer/Move2Panel")
+		var move2_text = template.get_node_or_null("VBoxContainer/Move2Panel/Move2Text")
+		
+		if move2_panel and move2_text:
+			if card_info.move2_name != "" or card_info.move2_dmg != "":
+				move2_panel.visible = true
 				var symbols = ""
 				if card_info.move2_is_equippable: symbols += "[E] "
 				if card_info.move2_has_cooldown: symbols += "[CD] "
 				
-				move2.text = "[b]" + symbols + card_info.move2_name + "    " + card_info.move2_dmg + "[/b]\n" + card_info.move2_desc
+				move2_text.text = "[b]" + symbols + card_info.move2_name + "[/b]    " + card_info.move2_dmg + "\n" + card_info.move2_desc
 			else:
-				move2.text = ""
+				move2_panel.visible = false
