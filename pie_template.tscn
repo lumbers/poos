@@ -119,6 +119,7 @@ offset_bottom = 0.27996826
 [node name="PassiveText" type="RichTextLabel" parent="VBoxContainer" unique_id=1226675962]
 layout_mode = 2
 bbcode_enabled = true
+text = "hi"
 
 [node name="Move1Text" type="RichTextLabel" parent="VBoxContainer" unique_id=117747173]
 layout_mode = 2

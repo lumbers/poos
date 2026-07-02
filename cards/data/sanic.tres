@@ -8,6 +8,7 @@ script = ExtResource("1_bqkcb")
 card_name = "Sanic"
 max_hp = 300
 card_art = ExtResource("1_fnr72")
+passives_and_attacks = "hihihih"
 is_half_art = true
 passive_desc = "When SANIC enters the field, draw a card."
 move1_name = "spinball"
