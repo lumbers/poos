@@ -316,15 +316,19 @@ func load_card_data():
 	if template.has_node("Label"):
 		template.get_node("Label").text = card_info.card_type
 		
-	# --- Fix #4: Hide text overlays for Full-Art cards ---
-	var is_full_art = not card_info.is_half_art
+	# --- Fix #4: Hide text overlays for Full-Art cards (Unless overridden!) ---
+	var hide_text = (not card_info.is_half_art) and (not card_info.force_text_on_full_art)
 	
-	if template.has_node("NameHP"): template.get_node("NameHP").visible = not is_full_art
-	if template.has_node("LiveHPLabel"): template.get_node("LiveHPLabel").visible = not is_full_art
-	if template.has_node("VBoxContainer"): template.get_node("VBoxContainer").visible = not is_full_art
-	if template.has_node("Label"): template.get_node("Label").visible = not is_full_art
-	if template.has_node("Label3"): template.get_node("Label3").visible = not is_full_art
+	if template.has_node("NameHP"): template.get_node("NameHP").visible = not hide_text
+	if template.has_node("LiveHPLabel"): template.get_node("LiveHPLabel").visible = not hide_text
+	if template.has_node("VBoxContainer"): template.get_node("VBoxContainer").visible = not hide_text
+	if template.has_node("Label"): template.get_node("Label").visible = not hide_text
+	if template.has_node("Label3"): template.get_node("Label3").visible = not hide_text
 	
+	# --- Show the Boss Icon if this card is a Boss ---
+	if template.has_node("BossIcon"):
+		template.get_node("BossIcon").visible = card_info.is_boss
+		
 	# --- 1. HANDLE CARD ARTWORK & CROPPING ---
 	var art_rect = template.get_node_or_null("TextureRect")
 	if art_rect and card_info.card_art != null:

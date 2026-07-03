@@ -12,6 +12,8 @@ class_name CardData
 
 @export_category("Pie Specific Details")
 @export var is_half_art: bool = false
+@export var force_text_on_full_art: bool = false # Check this for Ghidorah!
+@export var is_boss: bool = false # Check this to make it cost 3 discards
 @export var pie_size: String = "Medium"
 @export_multiline var passive_desc: String = ""
 
