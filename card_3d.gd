@@ -346,12 +346,17 @@ func load_card_data():
 			art_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			art_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 			
-	# --- 2. POPULATE THE PIE DATA (Only if Half-Art) ---
-	if card_info.card_type.to_lower() == "pie" and card_info.is_half_art:
+	# --- 2. POPULATE THE PIE DATA ---
+	# FIX: Now checks if it's half art OR if we forced the text on!
+	var should_show_text = card_info.is_half_art or card_info.force_text_on_full_art
+	
+	if card_info.card_type.to_lower() == "pie" and should_show_text:
 		
-		# Fix #2: NameHP gets ONLY the name!
+		# Setup Name
 		if template.has_node("NameHP"):
 			template.get_node("NameHP").text = card_info.card_name
+		
+		# ... (Keep the rest of your passive and move population code exactly the same below this!)
 			
 		# Bottom Right Label gets the Size
 		if template.has_node("Label3"):

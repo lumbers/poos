@@ -10,6 +10,7 @@
 [ext_resource type="Resource" uid="uid://b03qcdifhsvio" path="res://cards/data/gedagedago.tres" id="5_2pltu"]
 [ext_resource type="Resource" uid="uid://b8hkoy7vm2c8u" path="res://cards/data/12ShotsOfEspresso.tres" id="6_f52ns"]
 [ext_resource type="PackedScene" uid="uid://bem0apwgbhj8a" path="res://deck_3d.tscn" id="8_4srsv"]
+[ext_resource type="Resource" uid="uid://38l2bmdb8rm1" path="res://cards/data/Ghidorah.tres" id="10_aomqu"]
 [ext_resource type="PackedScene" uid="uid://dqvkp3b0f37yd" path="res://ghost_slot.tscn" id="11_02kkc"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_yx7mw"]
@@ -73,7 +74,7 @@ card_info = ExtResource("4_6bm6p")
 card_info = ExtResource("5_2pltu")
 
 [node name="Card3D7" parent="Camera3D/CardManager" unique_id=701594680 instance=ExtResource("2_yx7mw")]
-card_info = ExtResource("6_f52ns")
+card_info = ExtResource("10_aomqu")
 
 [node name="InspectAnchor" type="Marker3D" parent="Camera3D" unique_id=446256214]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.986809, 0.08800292, -1.4416652)

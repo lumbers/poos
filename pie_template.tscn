@@ -1,15 +1,8 @@
 [gd_scene format=3 uid="uid://cxn8qgf21e143"]
 
-[ext_resource type="Texture2D" uid="uid://dtrc0o0wrfw5g" path="res://enemy.png" id="1_etu5h"]
+[ext_resource type="Texture2D" uid="uid://dtrc0o0wrfw5g" path="res://cards/art/enemy.png" id="1_etu5h"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7rn0y"]
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0, 0, 0, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_etu5h"]
 border_width_left = 4
 border_width_top = 4
 border_width_right = 4
@@ -33,6 +26,13 @@ border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
+border_color = Color(0, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_etu5h"]
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
 border_color = Color(0, 0, 0, 1)
 
 [node name="PieTemplate" type="Control" unique_id=1399480307]
@@ -66,15 +66,6 @@ offset_bottom = -0.2800293
 expand_mode = 1
 stretch_mode = 6
 metadata/_edit_use_anchors_ = true
-
-[node name="Label" type="Label" parent="." unique_id=1597101205]
-layout_mode = 0
-offset_right = 55.0
-offset_bottom = 36.0
-theme_override_constants/outline_size = 6
-theme_override_styles/normal = SubResource("StyleBoxFlat_etu5h")
-text = "pie"
-horizontal_alignment = 1
 
 [node name="NameHP" type="Label" parent="." unique_id=155833840]
 layout_mode = 0
@@ -132,8 +123,11 @@ grow_vertical = 0
 
 [node name="PassiveText" type="RichTextLabel" parent="VBoxContainer" unique_id=1226675962]
 layout_mode = 2
+theme_override_constants/line_separation = 2
+theme_override_constants/outline_size = 4
 bbcode_enabled = true
 text = "hi"
+fit_content = true
 
 [node name="Move1Panel" type="PanelContainer" parent="VBoxContainer" unique_id=1945178563]
 custom_minimum_size = Vector2(0, 80)
@@ -215,15 +209,22 @@ bbcode_enabled = true
 text = "georgeous"
 fit_content = true
 
-[node name="BossIcon" type="TextureRect" parent="." unique_id=336889044]
-visible = false
+[node name="TopLeftBanner" type="HBoxContainer" parent="." unique_id=708237539]
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.029000001
-anchor_right = 0.047000002
-anchor_bottom = 0.033
-offset_left = -0.6800003
-offset_right = 4.7599945
-offset_bottom = 4.3600006
-scale = Vector2(0.07, 0.07)
+offset_right = 114.0
+offset_bottom = 40.0
+
+[node name="Label" type="Label" parent="TopLeftBanner" unique_id=1597101205]
+custom_minimum_size = Vector2(60, 35)
+layout_mode = 2
+theme_override_constants/outline_size = 6
+theme_override_styles/normal = SubResource("StyleBoxFlat_etu5h")
+text = "pie"
+horizontal_alignment = 1
+
+[node name="BossIcon" type="TextureRect" parent="TopLeftBanner" unique_id=336889044]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
 texture = ExtResource("1_etu5h")
+expand_mode = 1
+stretch_mode = 5
