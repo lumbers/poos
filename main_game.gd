@@ -58,6 +58,7 @@ var target_ghost_slot: Node3D = null
 @onready var attack_overlay = $AttackOverlay
 @onready var move1_button = $AttackOverlay/Control/VBoxContainer/Move1Button
 @onready var move2_button = $AttackOverlay/Control/VBoxContainer/Move2Button
+@onready var cancel_overlay_button = $AttackOverlay/Control/CancelOverlayButton
 
 var original_camera_pos: Vector3
 var original_camera_rot: Vector3
@@ -150,6 +151,14 @@ func _ready():
 	activate_field_drop_zone(false)
 	start_new_turn()
 	spawn_dummy_opponent()
+	
+	# --- ATTACK OVERLAY BUTTONS ---
+	if move1_button and not move1_button.pressed.is_connected(_on_move1_pressed):
+		move1_button.pressed.connect(_on_move1_pressed)
+	if move2_button and not move2_button.pressed.is_connected(_on_move2_pressed):
+		move2_button.pressed.connect(_on_move2_pressed)
+	if cancel_overlay_button and not cancel_overlay_button.pressed.is_connected(cancel_attack_phase):
+		cancel_overlay_button.pressed.connect(cancel_attack_phase)
 
 func update_hud_display():
 	if actions_label:
@@ -639,6 +648,10 @@ func _unhandled_input(event: InputEvent):
 	if event.is_action_pressed("ui_cancel"): 
 		if is_discard_phase and current_discard_mode == DiscardMode.SWITCHING:
 			cancel_switching_discard()
+			
+	# If we are zoomed in and the user presses Escape, cancel the attack!
+	if is_in_attack_phase and event.is_action_pressed("ui_cancel"):
+		cancel_attack_phase()
 
 func cancel_switching_discard():
 	print("Action cancelled!")
@@ -940,16 +953,50 @@ func execute_basic_attack():
 	)
 
 func cancel_attack_phase():
-	# SWOOP CAMERA BACK TO NORMAL
 	attack_overlay.visible = false
 	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	
-	cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 0.6)
-	cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 0.6)
+	# CHANGED: 1.2 seconds for a much smoother, sickness-free glide!
+	cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
+	cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
 	
 	cam_tween.chain().tween_callback(func():
 		is_in_attack_phase = false
 		$UI.visible = true
+	)
+
+func _on_move1_pressed():
+	execute_move(1)
+
+func _on_move2_pressed():
+	execute_move(2)
+
+func execute_move(move_num: int):
+	if active_slot_card == null or opponent_active_card == null:
+		cancel_attack_phase()
+		return
+		
+	var card_data = active_slot_card.card_info
+	var dmg_string = card_data.move1_dmg if move_num == 1 else card_data.move2_dmg
+	var dmg_amount = dmg_string.to_int() 
+	
+	current_energy -= 1
+	has_attacked_this_turn = true
+	update_hud_display()
+	
+	# 1. Hide the attack UI immediately
+	attack_overlay.visible = false
+	
+	# 2. Glide the camera back to the main view slowly
+	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.0)
+	cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.0)
+	
+	# 3. WHEN THE CAMERA SETTLES, DO THE PHYSICAL ATTACK ANIMATION!
+	cam_tween.chain().tween_callback(func():
+		is_in_attack_phase = false
+		$UI.visible = true
+		animate_physical_attack(active_slot_card, opponent_active_card, dmg_amount)
 	)
 
 func spawn_floating_error_text(message: String, spawn_pos: Vector2):
@@ -974,3 +1021,29 @@ func spawn_floating_error_text(message: String, spawn_pos: Vector2):
 	
 	# Delete it automatically when the animation finishes so it doesn't leak memory
 	tween.chain().tween_callback(error_label.queue_free)
+
+func animate_physical_attack(attacker: Node3D, target: Node3D, damage: int):
+	var original_pos = attacker.global_position
+	var target_pos = target.global_position
+	
+	# Calculate the animation points
+	var pullback_pos = original_pos + Vector3(0, 0, 0.4) # Pulls straight back slightly
+	var lunge_pos = original_pos.lerp(target_pos, 0.6) # Lunges 60% of the way across the table
+	
+	var attack_tween = create_tween()
+	
+	# 1. ANTICIPATION: Card lifts up and pulls back slowly
+	attack_tween.tween_property(attacker, "global_position", pullback_pos + Vector3(0, 0.3, 0), 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	
+	# 2. THE STRIKE: Card shoots forward extremely fast
+	attack_tween.tween_property(attacker, "global_position", lunge_pos + Vector3(0, 0.1, 0), 0.15).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	
+	# 3. THE IMPACT: Deal the damage the exact millisecond the card hits the lunge point!
+	attack_tween.tween_callback(func():
+		target.take_damage(damage)
+		update_hud_display()
+		print("BAM! Dealt ", damage, " damage!")
+	)
+	
+	# 4. THE RETURN: Card slides smoothly back to its home slot
+	attack_tween.tween_property(attacker, "global_position", original_pos, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

@@ -64,6 +64,8 @@ func heal_pie(amount: int):
 
 func take_damage(amount: int):
 	current_hp -= amount
+	# --- ADD THIS LINE HERE ---
+	spawn_damage_number(amount)
 	if current_hp <= 0:
 		current_hp = 0
 		update_field_hp_display()
@@ -415,3 +417,36 @@ func load_card_data():
 				if m2_desc: m2_desc.text = card_info.move2_desc
 			else:
 				move2_panel.visible = false
+
+func spawn_damage_number(amount: int):
+	var dmg_label = Label3D.new()
+	dmg_label.text = "-" + str(amount)
+	
+	# Style the text: Bright red with a thick black outline
+	dmg_label.modulate = Color(1.0, 0.2, 0.2) 
+	dmg_label.outline_modulate = Color.BLACK
+	dmg_label.outline_size = 12
+	dmg_label.font_size = 50 # Make it huge so it's readable in 3D
+	
+	# Magic Setting: Forces the text to ALWAYS face the camera!
+	dmg_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED 
+	
+	# FIX 1: Tell the label to completely ignore the card's rotation and scale
+	dmg_label.top_level = true
+	
+	# Attach it to the card
+	add_child(dmg_label)
+	
+	# FIX 2: Use global_position so it spawns perfectly above the card in world space
+	dmg_label.global_position = self.global_position + Vector3(0, 0.2, 0)
+	
+	# Animate it floating straight up toward the ceiling and fading out over 1.2 seconds
+	var tween = create_tween().set_parallel(true)
+	
+	# FIX 3: Tween the global_position so it travels strictly upward
+	var float_target = dmg_label.global_position + Vector3(0, 0.5, 0)
+	tween.tween_property(dmg_label, "global_position", float_target, 1.2).set_ease(Tween.EASE_OUT)
+	tween.tween_property(dmg_label, "modulate:a", 0.0, 1.2).set_ease(Tween.EASE_IN)
+	
+	# Delete the text node automatically when the fade finishes
+	tween.chain().tween_callback(dmg_label.queue_free)

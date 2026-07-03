@@ -374,6 +374,7 @@ transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0.86
 slot_index = 2
 
 [node name="AttackOverlay" type="CanvasLayer" parent="." unique_id=410453217]
+visible = false
 
 [node name="Control" type="Control" parent="AttackOverlay" unique_id=1162548005]
 layout_mode = 3
@@ -411,3 +412,17 @@ custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxEmpty_02kkc")
 theme_override_styles/hover = SubResource("StyleBoxFlat_aomqu")
+
+[node name="CancelOverlayButton" type="Button" parent="AttackOverlay/Control" unique_id=2012876543]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.43800002
+anchor_top = 0.70400006
+anchor_right = 0.56200004
+anchor_bottom = 0.768
+offset_left = 0.75
+offset_top = -0.38006592
+offset_right = 0.6711426
+offset_bottom = 0.5
+theme_override_font_sizes/font_size = 32
+text = "Cancel Attack"
