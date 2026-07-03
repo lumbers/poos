@@ -55,6 +55,14 @@ var target_ghost_slot: Node3D = null
 @onready var discard_overlay = $UI/DiscardOverlay
 @onready var confirm_discard_button = $UI/ConfirmDiscardButton
 
+@onready var attack_overlay = $AttackOverlay
+@onready var move1_button = $AttackOverlay/Control/VBoxContainer/Move1Button
+@onready var move2_button = $AttackOverlay/Control/VBoxContainer/Move2Button
+
+var original_camera_pos: Vector3
+var original_camera_rot: Vector3
+var is_in_attack_phase: bool = false
+
 # --- ADD THESE NEAR YOUR OTHER MARKERS AND POOLS ---
 @onready var opponent_discard_pile_marker = $BoardSlots/OpponentDiscardPileMarker
 var opponent_graveyard_pool: Array[Node3D] = []
@@ -95,6 +103,11 @@ var is_rearranging_field: bool = false
 var is_free_move_active: bool = false
 
 func _ready():
+	# Add these near the top of _ready()
+	original_camera_pos = camera_3d.global_position
+	original_camera_rot = camera_3d.rotation
+	
+	if attack_overlay: attack_overlay.visible = false
 	get_viewport().physics_object_picking = true
 	
 	# --- 1. SAFELY CONNECT ALL BUTTONS & SIGNALS ---
@@ -887,35 +900,57 @@ func spawn_dummy_opponent():
 		dummy_card.update_field_hp_display()
 
 func execute_basic_attack():
-	# 1. ENFORCE THE 1-ATTACK-PER-TURN LIMIT
+	# 1. ENFORCE LIMITS
 	if has_attacked_this_turn:
-		print("Already attacked this turn!")
-		if attack_button:
-			spawn_floating_error_text("You can only attack once per turn!", attack_button.global_position)
+		if attack_button: spawn_floating_error_text("You can only attack once per turn!", attack_button.global_position)
 		return
-
-	# 2. ENFORCE THE ACTION COST
 	if current_energy < 1:
-		print("Not enough actions to attack!")
-		if attack_button:
-			spawn_floating_error_text("You have no more actions left!", attack_button.global_position)
+		if attack_button: spawn_floating_error_text("You have no more actions left!", attack_button.global_position)
 		return
-		
-	# 3. SAFETY CHECK
 	if active_slot_card == null:
-		print("You have no Active Pie to attack with!")
 		return
 		
-	# 4. EXECUTE THE ATTACK
-	if selected_field_pie == active_slot_card and opponent_active_card != null:
-		current_energy -= 1
-		has_attacked_this_turn = true # <--- LOCK OUT FURTHER ATTACKS!
+	# 2. INITIATE CINEMATIC PHASE
+	is_in_attack_phase = true
+	$UI.visible = false # Hide standard UI (End turn, cards in hand, etc.)
+	clear_field_selection() # Drop the highlights
+	
+	# 3. TWEEN THE CAMERA TO LOOK AT THE CARD
+	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	
+	# Hover slightly above and back from the active slot, looking almost straight down
+	var target_pos = active_slot_marker.global_position + Vector3(0, 1.8, 0.4) 
+	var target_rot = Vector3(deg_to_rad(-75), 0, 0) 
+	
+	cam_tween.tween_property(camera_3d, "global_position", target_pos, 0.6)
+	cam_tween.tween_property(camera_3d, "rotation", target_rot, 0.6)
+	
+	# 4. SHOW THE MOVES OVERLAY WHEN FINISHED
+	cam_tween.chain().tween_callback(func():
+		attack_overlay.visible = true
 		
-		print("Player attacks Dummy for 100 damage!")
-		opponent_active_card.take_damage(100)
-		update_hud_display()
+		# Optional: You can dynamically pull the names of the moves from the card here
+		# to update the UI buttons if you decide to make them visible instead of transparent!
+		var card_data = active_slot_card.card_info
+		if card_data.move1_name == "": move1_button.visible = false
+		else: move1_button.visible = true
 		
-		# (We leave the pie selected so you can spam the button to see the new error text!)
+		if card_data.move2_name == "": move2_button.visible = false
+		else: move2_button.visible = true
+	)
+
+func cancel_attack_phase():
+	# SWOOP CAMERA BACK TO NORMAL
+	attack_overlay.visible = false
+	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	
+	cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 0.6)
+	cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 0.6)
+	
+	cam_tween.chain().tween_callback(func():
+		is_in_attack_phase = false
+		$UI.visible = true
+	)
 
 func spawn_floating_error_text(message: String, spawn_pos: Vector2):
 	var error_label = Label.new()

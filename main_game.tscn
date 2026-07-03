@@ -35,6 +35,11 @@ size = Vector3(3.327, 1.864, 3.482)
 transparency = 1
 albedo_color = Color(0.8784314, 0.26666668, 0.48235294, 0.11764706)
 
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_02kkc"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aomqu"]
+bg_color = Color(0.89411765, 0.89411765, 0.89411765, 0.5137255)
+
 [node name="MainGame" type="Node3D" unique_id=1627973838]
 script = ExtResource("1_l5ukw")
 card_pool = Array[ExtResource("2_mf81u")]([ExtResource("3_02kkc"), ExtResource("6_f52ns"), ExtResource("5_2pltu"), ExtResource("4_6bm6p")])
@@ -367,3 +372,36 @@ slot_index = 1
 [node name="GhostSlot4" parent="GhostSlotsContainer" unique_id=2143601404 instance=ExtResource("11_02kkc")]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0.86832494, 0.1, 1.6035823)
 slot_index = 2
+
+[node name="AttackOverlay" type="CanvasLayer" parent="." unique_id=410453217]
+visible = false
+
+[node name="Control" type="Control" parent="AttackOverlay" unique_id=1162548005]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="AttackOverlay/Control" unique_id=151253845]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.48900002
+anchor_top = 0.425
+anchor_right = 0.596
+anchor_bottom = 0.66
+offset_left = 0.11993408
+offset_right = 0.67993164
+offset_bottom = 0.19995117
+theme_override_constants/separation = 10
+
+[node name="Move1Button" type="Button" parent="AttackOverlay/Control/VBoxContainer" unique_id=1299759099]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_02kkc")
+theme_override_styles/hover = SubResource("StyleBoxFlat_aomqu")
+
+[node name="Move2Button" type="Button" parent="AttackOverlay/Control/VBoxContainer" unique_id=1687722211]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_02kkc")
+theme_override_styles/hover = SubResource("StyleBoxFlat_aomqu")
