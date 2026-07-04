@@ -17,16 +17,18 @@ class_name CardData
 @export var pie_size: String = "Medium"
 @export_multiline var passive_desc: String = ""
 
-@export_group("Move 1")
+@export_category("Move 1")
 @export var move1_name: String = ""
 @export var move1_dmg: String = ""
 @export_multiline var move1_desc: String = ""
+@export var move1_targets: int = 1 # <--- ADD THIS
 @export var move1_is_equippable: bool = false
 @export var move1_has_cooldown: bool = false
 
-@export_group("Move 2")
+@export_category("Move 2")
 @export var move2_name: String = ""
 @export var move2_dmg: String = ""
 @export_multiline var move2_desc: String = ""
+@export var move2_targets: int = 1 # <--- ADD THIS
 @export var move2_is_equippable: bool = false
 @export var move2_has_cooldown: bool = false

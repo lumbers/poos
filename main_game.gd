@@ -76,6 +76,11 @@ var player_lp: int = 1500
 var opponent_lp: int = 1500
 var opponent_active_card: Node3D = null
 
+var is_in_tactical_targeting: bool = false
+var targets_allowed: int = 1
+var current_targets_selected: Array = []
+var pending_damage_amount: int = 0
+
 # Inside main_game.gd near your other array trackers:
 var discard_graveyard_pool: Array[Node3D] = []
 
@@ -972,32 +977,58 @@ func _on_move2_pressed():
 	execute_move(2)
 
 func execute_move(move_num: int):
-	if active_slot_card == null or opponent_active_card == null:
+	if active_slot_card == null:
 		cancel_attack_phase()
 		return
 		
 	var card_data = active_slot_card.card_info
 	var dmg_string = card_data.move1_dmg if move_num == 1 else card_data.move2_dmg
-	var dmg_amount = dmg_string.to_int() 
+	pending_damage_amount = dmg_string.to_int() 
 	
-	current_energy -= 1
-	has_attacked_this_turn = true
-	update_hud_display()
+	targets_allowed = card_data.move1_targets if move_num == 1 else card_data.move2_targets
 	
-	# 1. Hide the attack UI immediately
+	# Hide the 2D Attack UI buttons
 	attack_overlay.visible = false
 	
-	# 2. Glide the camera back to the main view slowly
-	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.0)
-	cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.0)
-	
-	# 3. WHEN THE CAMERA SETTLES, DO THE PHYSICAL ATTACK ANIMATION!
-	cam_tween.chain().tween_callback(func():
-		is_in_attack_phase = false
-		$UI.visible = true
-		animate_physical_attack(active_slot_card, opponent_active_card, dmg_amount)
-	)
+	if targets_allowed == 1:
+		# --- NORMAL SINGLE ATTACK (What we already built!) ---
+		if opponent_active_card == null:
+			cancel_attack_phase()
+			return
+			
+		current_energy -= 1
+		has_attacked_this_turn = true
+		update_hud_display()
+		
+		# Glide camera back to default seat
+		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.0)
+		cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.0)
+		
+		cam_tween.chain().tween_callback(func():
+			is_in_attack_phase = false
+			$UI.visible = true
+			animate_physical_attack(active_slot_card, opponent_active_card, pending_damage_amount)
+		)
+		
+	else:
+		# --- TACTICAL MULTI-TARGET ATTACK (The New Bird's-Eye View!) ---
+		is_in_tactical_targeting = true
+		current_targets_selected.clear()
+		
+		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		
+		# Calculate a position high above the center of the board, looking straight down
+		var tactical_pos = Vector3(0, 5.0, 0) # Adjust the Y value (5.0) to go higher or lower
+		var tactical_rot = Vector3(deg_to_rad(-90), 0, 0) # -90 looks perfectly straight down
+		
+		cam_tween.tween_property(camera_3d, "global_position", tactical_pos, 1.2)
+		cam_tween.tween_property(camera_3d, "rotation", tactical_rot, 1.2)
+		
+		cam_tween.chain().tween_callback(func():
+			print("Entered Tactical Targeting Mode! Select ", targets_allowed, " targets.")
+			# (We will add the floating text and confirm button UI here next!)
+		)
 
 func spawn_floating_error_text(message: String, spawn_pos: Vector2):
 	var error_label = Label.new()
