@@ -10,6 +10,12 @@ extends Node3D
 @onready var free_move_up_button = $UI/FreeMoveUpButton
 @onready var cancel_button = $UI/CancelButton
 
+# Change this line:
+@onready var tactical_overlay = $TacticalOverlay/Control
+@onready var target_text = $TacticalOverlay/Control/TargetText
+@onready var confirm_button = $TacticalOverlay/Control/ConfirmButton
+@onready var cancel_tactical_button = $TacticalOverlay/Control/CancelTacticalButton
+
 @onready var ghost_slots_container = $GhostSlotsContainer
 @onready var ghost_slot_active = $GhostSlotsContainer/GhostSlot
 @onready var ghost_slot_bench = [
@@ -81,6 +87,9 @@ var targets_allowed: int = 1
 var current_targets_selected: Array = []
 var pending_damage_amount: int = 0
 
+var reticle_scene = preload("res://target_reticle.tscn") # Make sure you saved your crosshair scene!
+var spawned_reticles: Array[Node3D] = []
+
 # Inside main_game.gd near your other array trackers:
 var discard_graveyard_pool: Array[Node3D] = []
 
@@ -114,6 +123,7 @@ func _ready():
 	original_camera_rot = camera_3d.rotation
 	
 	if attack_overlay: attack_overlay.visible = false
+	if tactical_overlay: tactical_overlay.visible = false # <--- ADD THIS LINE
 	get_viewport().physics_object_picking = true
 	
 	# --- 1. SAFELY CONNECT ALL BUTTONS & SIGNALS ---
@@ -127,6 +137,9 @@ func _ready():
 	if confirm_discard_button and not confirm_discard_button.pressed.is_connected(_on_confirm_discard_pressed):
 		confirm_discard_button.pressed.connect(_on_confirm_discard_pressed)
 		
+	if cancel_tactical_button and not cancel_tactical_button.pressed.is_connected(cancel_attack_phase):
+		cancel_tactical_button.pressed.connect(cancel_attack_phase)
+	
 	# FIX: Removed the duplicate Attack button connections!
 	if attack_button and not attack_button.pressed.is_connected(execute_basic_attack):
 		attack_button.pressed.connect(execute_basic_attack)
@@ -681,13 +694,23 @@ func cancel_switching_discard():
 func handle_field_pie_clicked(pie: Node3D):
 	if is_discard_phase: return
 	
-	# FIX: Completely ignore clicks on the opponent's cards!
+	# --- NEW: INTERCEPT CLICKS FOR BIRD'S-EYE TARGETING ---
+	if is_in_tactical_targeting:
+		if pie.get("is_opponent") == true:
+			add_tactical_target(pie) # <--- THIS REPLACES THE PRINT STATEMENT
+		else:
+			spawn_floating_error_text("You can only target enemy pies!", get_viewport().get_mouse_position())
+		return 
+		
+	# ... (Keep normal selection logic below this!)
+	# --- NORMAL SELECTION LOGIC (Keep all of this exactly as it was!) ---
 	if pie.get("is_opponent") == true:
 		print("You cannot select the opponent's cards!")
 		return
-	
+		
 	# 1. DESELECTING THE PRIMARY CARD
 	if selected_field_pie == pie:
+# ... (Leave the rest of the function untouched)
 		pie.set_selection_highlight(false)
 		if target_field_pie != null:
 			selected_field_pie = target_field_pie
@@ -959,9 +982,20 @@ func execute_basic_attack():
 
 func cancel_attack_phase():
 	attack_overlay.visible = false
-	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	
-	# CHANGED: 1.2 seconds for a much smoother, sickness-free glide!
+	if has_node("TacticalOverlay"):
+		$TacticalOverlay.visible = false 
+		
+	is_in_tactical_targeting = false 
+	current_targets_selected.clear()
+	
+	# --- ADD THIS CLEANUP LOOP ---
+	for r in spawned_reticles:
+		if is_instance_valid(r):
+			r.queue_free()
+	spawned_reticles.clear()
+	
+	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
 	cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
 	
@@ -1006,9 +1040,14 @@ func execute_move(move_num: int):
 		cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.0)
 		
 		cam_tween.chain().tween_callback(func():
-			is_in_attack_phase = false
-			$UI.visible = true
-			animate_physical_attack(active_slot_card, opponent_active_card, pending_damage_amount)
+			print("Entered Tactical Targeting Mode! Select ", targets_allowed, " targets.")
+			
+			# BULLETPROOF UI FORCING
+			if has_node("TacticalOverlay"):
+				$TacticalOverlay.visible = true
+				$TacticalOverlay/Control.visible = true
+				$TacticalOverlay/Control/TargetText.text = "Select " + str(targets_allowed) + " Targets"
+				$TacticalOverlay/Control/ConfirmButton.visible = false
 		)
 		
 	else:
@@ -1078,3 +1117,49 @@ func animate_physical_attack(attacker: Node3D, target: Node3D, damage: int):
 	
 	# 4. THE RETURN: Card slides smoothly back to its home slot
 	attack_tween.tween_property(attacker, "global_position", original_pos, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func add_tactical_target(pie: Node3D):
+	if current_targets_selected.size() >= targets_allowed:
+		spawn_floating_error_text("Max targets reached!", get_viewport().get_mouse_position())
+		return
+
+	current_targets_selected.append(pie)
+
+	# 1. Spawn visual reticle
+	var reticle = reticle_scene.instantiate()
+	pie.add_child(reticle)
+	spawned_reticles.append(reticle)
+	reticle.set_meta("target_pie", pie) # Remember which pie this belongs to
+
+	# 2. Arrange them to match your sketch!
+	rearrange_reticles_on_pie(pie)
+
+	# 3. Update the UI Text
+	var remaining = targets_allowed - current_targets_selected.size()
+	if has_node("TacticalOverlay/Control/TargetText"):
+		$TacticalOverlay/Control/TargetText.text = "Select " + str(remaining) + " Targets"
+
+	# 4. Show Confirm Button if we hit the max!
+	if remaining == 0:
+		$TacticalOverlay/Control/ConfirmButton.visible = true
+
+func rearrange_reticles_on_pie(pie: Node3D):
+	# Find all reticles attached to THIS specific pie
+	var my_reticles = []
+	for r in spawned_reticles:
+		if is_instance_valid(r) and r.get_meta("target_pie") == pie:
+			my_reticles.append(r)
+
+	# Position them exactly like your drawing
+	var count = my_reticles.size()
+	for i in range(count):
+		var r = my_reticles[i]
+		if count == 1:
+			r.position = Vector3(0, 0.6, 0) # Center
+		elif count == 2:
+			if i == 0: r.position = Vector3(-0.4, 0.6, 0.4) # Top Left
+			if i == 1: r.position = Vector3(0.4, 0.6, -0.4) # Bottom Right
+		elif count >= 3:
+			if i == 0: r.position = Vector3(-0.4, 0.6, 0.4) # Top Left
+			if i == 1: r.position = Vector3(0.4, 0.6, -0.4) # Bottom Right
+			if i == 2: r.position = Vector3(0, 0.6, -0.5)   # Top Center

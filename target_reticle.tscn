@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bqtj2ewh5ct8p"]
+
+[ext_resource type="Texture2D" uid="uid://r0tfwp4tw516" path="res://cards/art/target.png" id="1_5qdel"]
+
+[node name="TargetReticle" type="Sprite3D" unique_id=1077975576]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+axis = 1
+texture = ExtResource("1_5qdel")

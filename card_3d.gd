@@ -326,9 +326,11 @@ func load_card_data():
 	if template.has_node("Label3"): template.get_node("Label3").visible = not hide_text
 	
 	# --- Show the Boss Icon if this card is a Boss ---
-	if template.has_node("BossIcon"):
-		template.get_node("BossIcon").visible = card_info.is_boss
-		
+	# FIX: Update the node path to look inside the new TopLeftBanner!
+	var boss_icon = template.get_node_or_null("TopLeftBanner/BossIcon")
+	if boss_icon:
+		boss_icon.visible = card_info.is_boss
+	
 	# --- 1. HANDLE CARD ARTWORK & CROPPING ---
 	var art_rect = template.get_node_or_null("TextureRect")
 	if art_rect and card_info.card_art != null:

@@ -427,3 +427,55 @@ offset_right = 0.6711426
 offset_bottom = 0.5
 theme_override_font_sizes/font_size = 32
 text = "Cancel Attack"
+
+[node name="TacticalOverlay" type="CanvasLayer" parent="." unique_id=1678606981]
+
+[node name="Control" type="Control" parent="TacticalOverlay" unique_id=72630349]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TargetText" type="Label" parent="TacticalOverlay/Control" unique_id=494969430]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.069000006
+anchor_right = 1.001
+anchor_bottom = 0.13100001
+offset_top = 0.47999573
+offset_right = -0.92004395
+offset_bottom = -0.480011
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 48
+text = "select 3 targets yo"
+horizontal_alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="TacticalOverlay/Control" unique_id=1711059455]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.85400003
+anchor_top = 0.772
+anchor_right = 0.98
+anchor_bottom = 0.84300005
+offset_left = -0.6800537
+offset_top = 0.23999023
+offset_right = -0.60009766
+offset_bottom = -0.44006348
+theme_override_font_sizes/font_size = 32
+text = "sic him"
+
+[node name="CancelTacticalButton" type="Button" parent="TacticalOverlay/Control" unique_id=74722703]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.012
+anchor_top = 0.78800005
+anchor_right = 0.135
+anchor_bottom = 0.85700005
+offset_left = -0.03999901
+offset_top = -0.040039063
+offset_right = 0.7999878
+offset_bottom = 0.4399414
+theme_override_font_sizes/font_size = 32
+text = "cancel"

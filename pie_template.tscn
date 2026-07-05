@@ -223,6 +223,7 @@ text = "pie"
 horizontal_alignment = 1
 
 [node name="BossIcon" type="TextureRect" parent="TopLeftBanner" unique_id=336889044]
+visible = false
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 texture = ExtResource("1_etu5h")
