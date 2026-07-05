@@ -1025,7 +1025,7 @@ func execute_move(move_num: int):
 	attack_overlay.visible = false
 	
 	if targets_allowed == 1:
-		# --- NORMAL SINGLE ATTACK (What we already built!) ---
+		# --- NORMAL SINGLE ATTACK (Sanic & Nugget) ---
 		if opponent_active_card == null:
 			cancel_attack_phase()
 			return
@@ -1040,6 +1040,26 @@ func execute_move(move_num: int):
 		cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.0)
 		
 		cam_tween.chain().tween_callback(func():
+			is_in_attack_phase = false
+			if has_node("UI"): $UI.visible = true
+			# TRIGGER THE PHYSICAL ATTACK ANIMATION!
+			animate_physical_attack(active_slot_card, opponent_active_card, pending_damage_amount)
+		)
+		
+	else:
+		# --- TACTICAL MULTI-TARGET ATTACK (Ghidorah) ---
+		is_in_tactical_targeting = true
+		current_targets_selected.clear()
+		
+		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		
+		var tactical_pos = Vector3(0, 5.0, 0) 
+		var tactical_rot = Vector3(deg_to_rad(-90), 0, 0) 
+		
+		cam_tween.tween_property(camera_3d, "global_position", tactical_pos, 1.2)
+		cam_tween.tween_property(camera_3d, "rotation", tactical_rot, 1.2)
+		
+		cam_tween.chain().tween_callback(func():
 			print("Entered Tactical Targeting Mode! Select ", targets_allowed, " targets.")
 			
 			# BULLETPROOF UI FORCING
@@ -1050,25 +1070,6 @@ func execute_move(move_num: int):
 				$TacticalOverlay/Control/ConfirmButton.visible = false
 		)
 		
-	else:
-		# --- TACTICAL MULTI-TARGET ATTACK (The New Bird's-Eye View!) ---
-		is_in_tactical_targeting = true
-		current_targets_selected.clear()
-		
-		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-		
-		# Calculate a position high above the center of the board, looking straight down
-		var tactical_pos = Vector3(0, 5.0, 0) # Adjust the Y value (5.0) to go higher or lower
-		var tactical_rot = Vector3(deg_to_rad(-90), 0, 0) # -90 looks perfectly straight down
-		
-		cam_tween.tween_property(camera_3d, "global_position", tactical_pos, 1.2)
-		cam_tween.tween_property(camera_3d, "rotation", tactical_rot, 1.2)
-		
-		cam_tween.chain().tween_callback(func():
-			print("Entered Tactical Targeting Mode! Select ", targets_allowed, " targets.")
-			# (We will add the floating text and confirm button UI here next!)
-		)
-
 func spawn_floating_error_text(message: String, spawn_pos: Vector2):
 	var error_label = Label.new()
 	error_label.text = message
@@ -1144,22 +1145,21 @@ func add_tactical_target(pie: Node3D):
 		$TacticalOverlay/Control/ConfirmButton.visible = true
 
 func rearrange_reticles_on_pie(pie: Node3D):
-	# Find all reticles attached to THIS specific pie
 	var my_reticles = []
 	for r in spawned_reticles:
 		if is_instance_valid(r) and r.get_meta("target_pie") == pie:
 			my_reticles.append(r)
 
-	# Position them exactly like your drawing
 	var count = my_reticles.size()
 	for i in range(count):
 		var r = my_reticles[i]
+		# Z=0.1 means it hovers slightly above the card art
 		if count == 1:
-			r.position = Vector3(0, 0.6, 0) # Center
+			r.position = Vector3(0, 0, 0.1) # Center
 		elif count == 2:
-			if i == 0: r.position = Vector3(-0.4, 0.6, 0.4) # Top Left
-			if i == 1: r.position = Vector3(0.4, 0.6, -0.4) # Bottom Right
+			if i == 0: r.position = Vector3(-0.3, 0.3, 0.1) # Top Left
+			if i == 1: r.position = Vector3(0.3, -0.3, 0.1) # Bottom Right
 		elif count >= 3:
-			if i == 0: r.position = Vector3(-0.4, 0.6, 0.4) # Top Left
-			if i == 1: r.position = Vector3(0.4, 0.6, -0.4) # Bottom Right
-			if i == 2: r.position = Vector3(0, 0.6, -0.5)   # Top Center
+			if i == 0: r.position = Vector3(-0.3, 0.3, 0.1)
+			if i == 1: r.position = Vector3(0.3, -0.3, 0.1)
+			if i == 2: r.position = Vector3(0, 0.3, 0.1) # Top Center

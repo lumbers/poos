@@ -1,8 +1,9 @@
 [gd_scene format=3 uid="uid://bqtj2ewh5ct8p"]
 
 [ext_resource type="Texture2D" uid="uid://r0tfwp4tw516" path="res://cards/art/target.png" id="1_5qdel"]
+[ext_resource type="Script" uid="uid://dybya187h2ijs" path="res://target_reticle.gd" id="2_c2gpn"]
 
 [node name="TargetReticle" type="Sprite3D" unique_id=1077975576]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
-axis = 1
+transform = Transform3D(0.25, 0, 0, 0, 0.25, 0, 0, 0, 0.25, 0, 0, 0)
 texture = ExtResource("1_5qdel")
+script = ExtResource("2_c2gpn")
