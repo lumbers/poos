@@ -140,6 +140,10 @@ func _ready():
 	if cancel_tactical_button and not cancel_tactical_button.pressed.is_connected(cancel_attack_phase):
 		cancel_tactical_button.pressed.connect(cancel_attack_phase)
 	
+	# --- ADD THIS NEW CONNECTION ---
+	if confirm_button and not confirm_button.pressed.is_connected(execute_tactical_attack):
+		confirm_button.pressed.connect(execute_tactical_attack)
+	
 	# FIX: Removed the duplicate Attack button connections!
 	if attack_button and not attack_button.pressed.is_connected(execute_basic_attack):
 		attack_button.pressed.connect(execute_basic_attack)
@@ -1163,3 +1167,41 @@ func rearrange_reticles_on_pie(pie: Node3D):
 			if i == 0: r.position = Vector3(-0.3, 0.3, 0.1)
 			if i == 1: r.position = Vector3(0.3, -0.3, 0.1)
 			if i == 2: r.position = Vector3(0, 0.3, 0.1) # Top Center
+
+func execute_tactical_attack():
+	print("TACTICAL ATTACK CONFIRMED! Firing at targets...")
+	
+	# 1. Hide the UI immediately
+	if has_node("TacticalOverlay"):
+		$TacticalOverlay.visible = false
+	
+	# 2. Loop through every selected target and blast it!
+	# (If you clicked the same pie 3 times, it's in this array 3 times, so it takes 3 hits!)
+	for target_pie in current_targets_selected:
+		if is_instance_valid(target_pie) and target_pie.has_method("take_damage"):
+			target_pie.take_damage(pending_damage_amount)
+			# (Later, we will spawn the lightning bolt visual effect right here!)
+			
+	# 3. Clean up the red crosshairs
+	for r in spawned_reticles:
+		if is_instance_valid(r):
+			r.queue_free()
+	spawned_reticles.clear()
+	
+	# 4. Deduct the action point and lock attacks for the turn
+	current_energy -= 1
+	has_attacked_this_turn = true
+	update_hud_display()
+	
+	# 5. Swoop the camera back down to your seat
+	is_in_tactical_targeting = false 
+	current_targets_selected.clear()
+	
+	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
+	cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
+	
+	cam_tween.chain().tween_callback(func():
+		is_in_attack_phase = false
+		if has_node("UI"): $UI.visible = true
+	)
