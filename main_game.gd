@@ -1040,24 +1040,24 @@ func execute_move(move_num: int):
 		
 	var card_data = active_slot_card.card_info
 	var dmg_string = card_data.move1_dmg if move_num == 1 else card_data.move2_dmg
-	pending_damage_amount = dmg_string.to_int() 
 	
+	# --- NEW: PARSE THE HEALING SYMBOL ---
+	var is_healing = false
+	if "±" in dmg_string:
+		is_healing = true
+		dmg_string = dmg_string.replace("±", "") # Strip the symbol so math works!
+		
+	pending_damage_amount = dmg_string.to_int() 
 	targets_allowed = card_data.move1_targets if move_num == 1 else card_data.move2_targets
 	
-	# Hide the 2D Attack UI buttons
 	attack_overlay.visible = false
 	
 	if targets_allowed == 1:
-		# --- NORMAL SINGLE ATTACK (Sanic & Nugget) ---
-		if opponent_active_card == null:
-			cancel_attack_phase()
-			return
-			
+		# --- NORMAL SINGLE ATTACK OR HEAL ---
 		current_energy -= 1
 		has_attacked_this_turn = true
 		update_hud_display()
 		
-		# Glide camera back to default seat
 		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.0)
 		cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.0)
@@ -1065,11 +1065,18 @@ func execute_move(move_num: int):
 		cam_tween.chain().tween_callback(func():
 			is_in_attack_phase = false
 			if has_node("UI"): $UI.visible = true
-			# TRIGGER THE PHYSICAL ATTACK ANIMATION!
-			animate_physical_attack(active_slot_card, opponent_active_card, pending_damage_amount)
+			
+			# IF HEALING, HEAL SELF! IF NOT, RAM THE ENEMY!
+			if is_healing:
+				active_slot_card.heal_pie(pending_damage_amount)
+				# TODO: Play your Healing SFX and VFX here!
+			else:
+				if opponent_active_card != null:
+					animate_physical_attack(active_slot_card, opponent_active_card, pending_damage_amount)
 		)
 		
 	else:
+		# ... (Keep all your Tactical Multi-Target code exactly the same here!)
 		# --- TACTICAL MULTI-TARGET ATTACK (Ghidorah) ---
 		is_in_tactical_targeting = true
 		current_targets_selected.clear()

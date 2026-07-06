@@ -55,13 +55,6 @@ func update_field_hp_display():
 		live_hp_label.text = "HP: " + str(current_hp)
 # --- NEW FUNCTION TO HANDLE HEALING / DAMAGE OVER TIME ---
 
-func heal_pie(amount: int):
-	current_hp += amount
-	# Update Peak HP if we healed over our previous maximum!
-	if current_hp > peak_hp:
-		peak_hp = current_hp
-	update_field_hp_display()
-
 func take_damage(amount: int, hit_pos: Vector3 = Vector3.ZERO):
 	current_hp -= amount
 	spawn_damage_number(amount, hit_pos)
@@ -451,3 +444,35 @@ func spawn_damage_number(amount: int, hit_pos: Vector3 = Vector3.ZERO):
 	tween.tween_property(dmg_label, "modulate:a", 0.0, 1.2).set_ease(Tween.EASE_IN)
 	
 	tween.chain().tween_callback(dmg_label.queue_free)
+
+func heal_pie(amount: int):
+	current_hp += amount
+	
+	# Prevent healing past their original Max HP!
+	if current_hp > peak_hp:
+		current_hp = peak_hp
+		
+	spawn_healing_number(amount)
+	update_field_hp_display()
+
+func spawn_healing_number(amount: int):
+	var heal_label = Label3D.new()
+	heal_label.text = "+" + str(amount)
+	
+	# Bright Green text!
+	heal_label.modulate = Color(0.2, 1.0, 0.2) 
+	heal_label.outline_modulate = Color.BLACK
+	heal_label.outline_size = 12
+	heal_label.font_size = 50 
+	heal_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED 
+	heal_label.top_level = true
+	
+	add_child(heal_label)
+	heal_label.global_position = self.global_position + Vector3(0, 0.5, 0)
+	
+	# Float up and fade out
+	var tween = create_tween().set_parallel(true)
+	var float_target = heal_label.global_position + Vector3(0, 1.0, 0)
+	tween.tween_property(heal_label, "global_position", float_target, 1.2).set_ease(Tween.EASE_OUT)
+	tween.tween_property(heal_label, "modulate:a", 0.0, 1.2).set_ease(Tween.EASE_IN)
+	tween.chain().tween_callback(heal_label.queue_free)
