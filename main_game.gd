@@ -917,7 +917,7 @@ func execute_paid_switch():
 func spawn_dummy_opponent():
 	if card_pool.is_empty() or opponent_active_marker == null: return
 	
-	# FIX: Filter the deck so we ONLY grab Pie cards!
+	# Filter the deck so we ONLY grab Pie cards!
 	var possible_dummies = []
 	for card_data in card_pool:
 		if card_data.card_type.to_lower() == "pie":
@@ -927,25 +927,41 @@ func spawn_dummy_opponent():
 		print("No pies in deck to use as dummy!")
 		return
 		
-	var dummy_data = possible_dummies.pick_random() 
-	var dummy_card = card_manager.card_scene.instantiate()
+	# --- THE FIX: Put the markers you just duplicated into a list! ---
+	var enemy_slots = [
+		$BoardSlots/OpponentActiveSlot,
+		$BoardSlots/OpponentActiveSlot2,
+		$BoardSlots/OpponentActiveSlot3,
+		$BoardSlots/OpponentActiveSlot4,
+	]
 	
-	dummy_card.card_info = dummy_data
-	dummy_card.is_opponent = true # Tags it as enemy property
-	add_child(dummy_card)
-	
-	dummy_card.load_card_data()
-	
-	dummy_card.global_position = opponent_active_marker.global_position
-	dummy_card.global_transform.basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90))).rotated(Vector3.UP, deg_to_rad(180))
-	dummy_card.scale = Vector3(0.85, 0.85, 0.85)
-	
-	dummy_card.is_on_board = true
-	opponent_active_card = dummy_card
-	
-	await get_tree().process_frame
-	if dummy_card.has_method("update_field_hp_display"):
-		dummy_card.update_field_hp_display()
+	# Loop through every marker in the list and spawn a card there
+	for i in range(enemy_slots.size()):
+		var marker = enemy_slots[i]
+		if marker == null: continue # Safety check just in case
+		
+		var dummy_data = possible_dummies.pick_random() 
+		var dummy_card = card_manager.card_scene.instantiate()
+		
+		dummy_card.card_info = dummy_data
+		dummy_card.is_opponent = true # Tags it as enemy property
+		add_child(dummy_card)
+		
+		dummy_card.load_card_data()
+		
+		dummy_card.global_position = marker.global_position
+		dummy_card.global_transform.basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90))).rotated(Vector3.UP, deg_to_rad(180))
+		dummy_card.scale = Vector3(0.85, 0.85, 0.85)
+		
+		dummy_card.is_on_board = true
+		
+		# Set the first slot as the "Active" enemy so normal attacks still work
+		if i == 0:
+			opponent_active_card = dummy_card
+		
+		await get_tree().process_frame
+		if dummy_card.has_method("update_field_hp_display"):
+			dummy_card.update_field_hp_display()
 
 func execute_basic_attack():
 	# 1. ENFORCE LIMITS
@@ -1185,10 +1201,16 @@ func execute_tactical_attack():
 		if is_instance_valid(r):
 			var target_pie = r.get_meta("target_pie")
 			if target_pie.has_method("take_damage"):
-				# Pass the reticle's global position to the damage function
+				# Deal the damage!
 				target_pie.take_damage(pending_damage_amount, r.global_position)
+				
+				# Hide the crosshair the exact millisecond the damage hits
+				r.visible = false 
+				
+				# PAUSE THE CODE FOR 0.2 SECONDS BEFORE THE NEXT HIT!
+				await get_tree().create_timer(0.2).timeout
 			
-	# 3. Clean up the red crosshairs
+	# 3. Clean up the red crosshairs AFTER all the delays are done
 	for r in spawned_reticles:
 		if is_instance_valid(r):
 			r.queue_free()

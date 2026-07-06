@@ -79,9 +79,6 @@ card_info = ExtResource("10_aomqu")
 [node name="InspectAnchor" type="Marker3D" parent="Camera3D" unique_id=446256214]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.986809, 0.08800292, -1.4416652)
 
-[node name="Card3D" parent="." unique_id=1461637669 instance=ExtResource("2_yx7mw")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2339983, 0.629683, -0.23192334)
-
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=433656068]
 
 [node name="CardPreviewPanel" type="Control" parent="CanvasLayer" unique_id=1299140284]
@@ -146,6 +143,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -0.959)
 
 [node name="OpponentDiscardPileMarker" type="Marker3D" parent="BoardSlots" unique_id=448895587]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8703926, 0.1, -1.9849682)
+
+[node name="OpponentActiveSlot2" type="Marker3D" parent="BoardSlots" unique_id=1392521029]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9053478, 0.1, -1.918)
+
+[node name="OpponentActiveSlot3" type="Marker3D" parent="BoardSlots" unique_id=1898664526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -1.912)
+
+[node name="OpponentActiveSlot4" type="Marker3D" parent="BoardSlots" unique_id=1527113694]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.94286495, 0.1, -1.912)
 
 [node name="DiscardPileMarker" type="Marker3D" parent="." unique_id=389567418]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.033, 0.051374882, 1.775)
