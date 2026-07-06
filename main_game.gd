@@ -6,6 +6,8 @@ extends Node3D
 @onready var card_manager = $Camera3D/CardManager
 @onready var camera_3d: Camera3D = $Camera3D
 
+@onready var remove_target_button = $TacticalOverlay/Control/RemoveTargetButton
+
 @onready var switch_button = $UI/SwitchButton
 @onready var free_move_up_button = $UI/FreeMoveUpButton
 @onready var cancel_button = $UI/CancelButton
@@ -139,6 +141,8 @@ func _ready():
 		
 	if cancel_tactical_button and not cancel_tactical_button.pressed.is_connected(cancel_attack_phase):
 		cancel_tactical_button.pressed.connect(cancel_attack_phase)
+	
+	if remove_target_button: remove_target_button.pressed.connect(undo_last_target)
 	
 	# --- ADD THIS NEW CONNECTION ---
 	if confirm_button and not confirm_button.pressed.is_connected(execute_tactical_attack):
@@ -555,14 +559,19 @@ func _input(event: InputEvent):
 	# Test Damage: Pressing "ENTER" will hit your Active Pie for 20 damage!
 	if event.is_action_pressed("ui_accept"): # UI_ACCEPT is the Enter/Return key
 		if active_slot_card != null and active_slot_card.has_method("take_damage"):
-			print("Debug: Attacking Active Pie for 20 damage!")
-			active_slot_card.take_damage(20)
+			print("Debug: Attacking Active Pie for 50 damage!")
+			active_slot_card.take_damage(50)
 			
 	# Test Healing: Pressing "H" will heal your Active Pie for 15 health!
 	if event is InputEventKey and event.pressed and event.keycode == KEY_H:
 		if active_slot_card != null and active_slot_card.has_method("heal_pie"):
-			print("Debug: Healing Active Pie for 15 HP!")
-			active_slot_card.heal_pie(15)
+			print("Debug: Healing Active Pie for 50 HP!")
+			active_slot_card.heal_pie(50)
+
+	# --- NEW: AGGRESSIVE RIGHT CLICK DETECTION ---
+	if is_in_tactical_targeting and event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			undo_last_target()
 
 # ==========================================================
 # 🔍 3D IN-GAME HOVER CARD INSPECTION SYSTEM
@@ -665,13 +674,7 @@ func initiate_paid_switch():
 	if confirm_discard_button: confirm_discard_button.visible = true
 	update_discard_ui_counters()
 
-func _unhandled_input(event: InputEvent):
-	# ui_cancel is the default Godot action for the Escape key
-	if event.is_action_pressed("ui_cancel"): 
-		if is_discard_phase and current_discard_mode == DiscardMode.SWITCHING:
-			cancel_switching_discard()
-			
-	# If we are zoomed in and the user presses Escape, cancel the attack!
+func _unhandled_input(event):
 	if is_in_attack_phase and event.is_action_pressed("ui_cancel"):
 		cancel_attack_phase()
 
@@ -1133,9 +1136,12 @@ func add_tactical_target(pie: Node3D):
 	# 1. Spawn visual reticle
 	var reticle = reticle_scene.instantiate()
 	pie.add_child(reticle)
+	reticle.scale = Vector3(0.15, 0.15, 0.15) # <--- Using your preferred 0.05 scale!
 	spawned_reticles.append(reticle)
-	reticle.set_meta("target_pie", pie) # Remember which pie this belongs to
-
+	
+	# THE FIX: This single line connects the crosshair to the pie!
+	reticle.set_meta("target_pie", pie) 
+	
 	# 2. Arrange them to match your sketch!
 	rearrange_reticles_on_pie(pie)
 
@@ -1147,7 +1153,7 @@ func add_tactical_target(pie: Node3D):
 	# 4. Show Confirm Button if we hit the max!
 	if remaining == 0:
 		$TacticalOverlay/Control/ConfirmButton.visible = true
-
+		
 func rearrange_reticles_on_pie(pie: Node3D):
 	var my_reticles = []
 	for r in spawned_reticles:
@@ -1157,17 +1163,16 @@ func rearrange_reticles_on_pie(pie: Node3D):
 	var count = my_reticles.size()
 	for i in range(count):
 		var r = my_reticles[i]
-		# Z=0.1 means it hovers slightly above the card art
 		if count == 1:
 			r.position = Vector3(0, 0, 0.1) # Center
 		elif count == 2:
-			if i == 0: r.position = Vector3(-0.3, 0.3, 0.1) # Top Left
-			if i == 1: r.position = Vector3(0.3, -0.3, 0.1) # Bottom Right
+			if i == 0: r.position = Vector3(-0.3, -0.3, 0.1) # Top Left
+			if i == 1: r.position = Vector3(0.3, 0.3, 0.1)  # Top Right
 		elif count >= 3:
-			if i == 0: r.position = Vector3(-0.3, 0.3, 0.1)
-			if i == 1: r.position = Vector3(0.3, -0.3, 0.1)
-			if i == 2: r.position = Vector3(0, 0.3, 0.1) # Top Center
-
+			if i == 0: r.position = Vector3(0, 0.3, 0.1) # Top Left
+			if i == 1: r.position = Vector3(0.3, -0.3, 0.1)  # Top Right
+			if i == 2: r.position = Vector3(-0.3, -0.3, 0.1) # Bottom Left
+		
 func execute_tactical_attack():
 	print("TACTICAL ATTACK CONFIRMED! Firing at targets...")
 	
@@ -1175,12 +1180,13 @@ func execute_tactical_attack():
 	if has_node("TacticalOverlay"):
 		$TacticalOverlay.visible = false
 	
-	# 2. Loop through every selected target and blast it!
-	# (If you clicked the same pie 3 times, it's in this array 3 times, so it takes 3 hits!)
-	for target_pie in current_targets_selected:
-		if is_instance_valid(target_pie) and target_pie.has_method("take_damage"):
-			target_pie.take_damage(pending_damage_amount)
-			# (Later, we will spawn the lightning bolt visual effect right here!)
+	# 2. Loop through every spawned crosshair and blast exactly where it sits!
+	for r in spawned_reticles:
+		if is_instance_valid(r):
+			var target_pie = r.get_meta("target_pie")
+			if target_pie.has_method("take_damage"):
+				# Pass the reticle's global position to the damage function
+				target_pie.take_damage(pending_damage_amount, r.global_position)
 			
 	# 3. Clean up the red crosshairs
 	for r in spawned_reticles:
@@ -1205,3 +1211,29 @@ func execute_tactical_attack():
 		is_in_attack_phase = false
 		if has_node("UI"): $UI.visible = true
 	)
+
+func undo_last_target():
+	if current_targets_selected.is_empty():
+		spawn_floating_error_text("No targets to remove!", get_viewport().get_mouse_position())
+		return
+
+	# Pop the last selected pie from the array
+	var last_pie = current_targets_selected.pop_back()
+
+	# Find the EXACT reticle associated with this selection and delete it
+	for i in range(spawned_reticles.size() - 1, -1, -1):
+		var r = spawned_reticles[i]
+		if is_instance_valid(r) and r.get_meta("target_pie") == last_pie:
+			r.queue_free()
+			spawned_reticles.remove_at(i)
+			break # Only remove ONE reticle!
+
+	# Re-center the remaining reticles
+	rearrange_reticles_on_pie(last_pie)
+
+	# Update the UI
+	var remaining = targets_allowed - current_targets_selected.size()
+	if has_node("TacticalOverlay/Control/TargetText"):
+		$TacticalOverlay/Control/TargetText.text = "Select " + str(remaining) + " Targets"
+	if has_node("TacticalOverlay/Control/ConfirmButton"):
+		$TacticalOverlay/Control/ConfirmButton.visible = false

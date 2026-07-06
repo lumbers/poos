@@ -62,16 +62,13 @@ func heal_pie(amount: int):
 		peak_hp = current_hp
 	update_field_hp_display()
 
-func take_damage(amount: int):
+func take_damage(amount: int, hit_pos: Vector3 = Vector3.ZERO):
 	current_hp -= amount
-	# --- ADD THIS LINE HERE ---
-	spawn_damage_number(amount)
+	spawn_damage_number(amount, hit_pos)
+	
 	if current_hp <= 0:
 		current_hp = 0
 		update_field_hp_display()
-		
-		# --- TRIGGER CARD DEATH ROUTINE ---
-		# Tell the main game to clean this card up off the board matrix!
 		if main_game and main_game.has_method("handle_pie_death"):
 			main_game.handle_pie_death(self)
 	else:
@@ -429,35 +426,28 @@ func load_card_data():
 			else:
 				move2_panel.visible = false
 
-func spawn_damage_number(amount: int):
+func spawn_damage_number(amount: int, hit_pos: Vector3 = Vector3.ZERO):
 	var dmg_label = Label3D.new()
 	dmg_label.text = "-" + str(amount)
 	
-	# Style the text: Bright red with a thick black outline
 	dmg_label.modulate = Color(1.0, 0.2, 0.2) 
 	dmg_label.outline_modulate = Color.BLACK
 	dmg_label.outline_size = 12
-	dmg_label.font_size = 50 # Make it huge so it's readable in 3D
-	
-	# Magic Setting: Forces the text to ALWAYS face the camera!
+	dmg_label.font_size = 50 
 	dmg_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED 
-	
-	# FIX 1: Tell the label to completely ignore the card's rotation and scale
 	dmg_label.top_level = true
 	
-	# Attach it to the card
 	add_child(dmg_label)
 	
-	# FIX 2: Use global_position so it spawns perfectly above the card in world space
-	dmg_label.global_position = self.global_position + Vector3(0, 0.2, 0)
+	# Spawn above the reticle if provided, otherwise spawn at the card's center
+	if hit_pos == Vector3.ZERO:
+		dmg_label.global_position = self.global_position + Vector3(0, 0.5, 0)
+	else:
+		dmg_label.global_position = hit_pos + Vector3(0, 0.5, 0)
 	
-	# Animate it floating straight up toward the ceiling and fading out over 1.2 seconds
 	var tween = create_tween().set_parallel(true)
-	
-	# FIX 3: Tween the global_position so it travels strictly upward
-	var float_target = dmg_label.global_position + Vector3(0, 0.5, 0)
+	var float_target = dmg_label.global_position + Vector3(0, 1.0, 0)
 	tween.tween_property(dmg_label, "global_position", float_target, 1.2).set_ease(Tween.EASE_OUT)
 	tween.tween_property(dmg_label, "modulate:a", 0.0, 1.2).set_ease(Tween.EASE_IN)
 	
-	# Delete the text node automatically when the fade finishes
 	tween.chain().tween_callback(dmg_label.queue_free)
