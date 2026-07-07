@@ -503,7 +503,12 @@ func _on_confirm_discard_pressed():
 				
 	update_graveyard_mouse_priorities()
 	marked_for_discard.clear()
-	card_manager.arrange_hand()
+	
+	# --- THE FIX FOR HAND CENTERING ---
+	# Force the manager to forget any hovered cards so the gap closes!
+	if card_manager:
+		card_manager.hovered_card_index = -1
+		card_manager.arrange_hand()
 	
 	# --- 3. ROUTE THE GAME STATE ---
 	if finished_mode == DiscardMode.HAND_LIMIT:
@@ -652,32 +657,36 @@ func _input(event: InputEvent):
 @onready var inspect_anchor = $Camera3D/InspectAnchor
 var current_3d_preview: Node3D = null
 
-func show_3d_card_preview(source_card_info: CardData):
+func show_3d_card_preview(source_card: Node3D):
 	# If a preview is already showing, get rid of it first
 	hide_3d_card_preview()
 	
-	if source_card_info == null or inspect_anchor == null:
+	# Safety check to make sure the card and its data exist
+	if source_card == null or source_card.card_info == null or inspect_anchor == null:
 		return
 		
-	# Instantiate a brand new duplicate of your 3D card scene
-	var card_scene_path = load("res://card_3d.tscn") # Adjust path if yours is named differently!
+	var card_scene_path = load("res://card_3d.tscn") 
 	var preview_instance = card_scene_path.instantiate()
 	
-	# Assign the exact resource data so the art/text matches perfectly!
-	preview_instance.card_info = source_card_info
-	
-	# Attach it right onto our camera's anchor point
+	# Assign the resource data first
+	preview_instance.card_info = source_card.card_info
 	inspect_anchor.add_child(preview_instance)
 	current_3d_preview = preview_instance
 	
-	# CRITICAL SAFETY: Turn off its collisions so it acts like a complete ghost!
-	# This stops it from intercepting mouse clicks or breaking hand arrangements.
 	if preview_instance.has_node("Area3D"):
 		preview_instance.get_node("Area3D").input_ray_pickable = false
 		
-	# Force its on-field Nextbot HP display to remain invisible up close
 	if preview_instance.has_node("HPTracker"):
 		preview_instance.get_node("HPTracker").visible = false
+
+	# --- THE FIX FOR LIVE HP ---
+	# We must wait one frame for the preview to finish its default _ready() setup.
+	# Then, we force its HP to match the board card and reload the text!
+	await get_tree().process_frame
+	if is_instance_valid(preview_instance) and is_instance_valid(source_card):
+		preview_instance.current_hp = source_card.current_hp
+		preview_instance.peak_hp = source_card.peak_hp
+		preview_instance.load_card_data()
 
 func hide_3d_card_preview():
 	if is_instance_valid(current_3d_preview):

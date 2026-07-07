@@ -281,10 +281,9 @@ func _on_mouse_entered():
 	
 	# --- BATTLEFIELD HOVER INSPECTION OVERLAY ---
 	if is_on_board:
-		# EXTRA CHECK: If the card is still animating down to the table, abort!
-		# This ensures it doesn't pop up until the card is fully resting on the board.
 		if main_game and main_game.has_method("show_3d_card_preview"):
-			main_game.show_3d_card_preview(card_info)
+			# THE FIX: Pass `self` (the whole card) instead of just `card_info`!
+			main_game.show_3d_card_preview(self) 
 		return
 		
 	# --- Standard hand layout hovering alignment ---
