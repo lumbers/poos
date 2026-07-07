@@ -500,3 +500,5 @@ offset_right = -0.2000122
 offset_bottom = 0.27996826
 theme_override_font_sizes/font_size = 32
 text = "Undo Target"
+
+[node name="SFXPlayer" type="AudioStreamPlayer" parent="." unique_id=82789258]

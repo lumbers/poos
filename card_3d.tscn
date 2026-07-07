@@ -54,3 +54,6 @@ no_depth_test = true
 text = "100
 "
 font_size = 25
+
+[node name="EntrySound" type="AudioStreamPlayer3D" parent="." unique_id=1141480175]
+volume_db = 10.0

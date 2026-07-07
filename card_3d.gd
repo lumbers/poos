@@ -1,7 +1,7 @@
 extends Node3D
 
 @onready var main_game = get_node("/root/MainGame")
-
+@onready var entry_sound = $EntrySound
 @export var card_info: CardData
 @onready var preview_panel = get_node("/root/MainGame/CanvasLayer/CardPreviewPanel")
 
@@ -37,6 +37,14 @@ func _ready():
 		
 	if hp_tracker:
 		hp_tracker.visible = false
+	
+	# If this card is a boss, play an epic entry sound!
+	if card_info != null and card_info.is_boss:
+		# Copy the path to your roar .wav file here!
+		var roar_sfx = preload("res://sounds/lightning_strike.mp3") 
+		if entry_sound:
+			entry_sound.stream = roar_sfx
+			entry_sound.play()
 
 # --- NEW FUNCTION TO UPDATE AND DISPLAY HEALTH ---
 # --- UPDATE LIVE HP FUNCTION ---

@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://ch62vemx2ow2n"]
+[gd_scene format=3 uid="uid://nsrqqq5yce4d"]
 
-[ext_resource type="ArrayMesh" uid="uid://cr5nirtnkld5l" path="res://thunder_editable.tres" id="1_a202f"]
+[ext_resource type="ArrayMesh" uid="uid://cr5nirtnkld5l" path="res://thunder_editable.tres" id="1_gm1vi"]
 
 [sub_resource type="Gradient" id="Gradient_a202f"]
 
@@ -10,6 +10,8 @@ gradient = SubResource("Gradient_a202f")
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_a0tk4"]
 lifetime_randomness = 0.1
 particle_flag_rotate_y = true
+angle_min = -1121.5
+angle_max = 720.0
 gravity = Vector3(0, 0, 0)
 color_ramp = SubResource("GradientTexture1D_noarx")
 
@@ -21,4 +23,4 @@ amount = 1
 lifetime = 0.25
 fixed_fps = 100
 process_material = SubResource("ParticleProcessMaterial_a0tk4")
-draw_pass_1 = ExtResource("1_a202f")
+draw_pass_1 = ExtResource("1_gm1vi")

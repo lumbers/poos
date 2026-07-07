@@ -12,6 +12,8 @@ extends Node3D
 @onready var free_move_up_button = $UI/FreeMoveUpButton
 @onready var cancel_button = $UI/CancelButton
 
+@onready var sfx_player = $SFXPlayer
+
 # Change this line:
 @onready var tactical_overlay = $TacticalOverlay/Control
 @onready var target_text = $TacticalOverlay/Control/TargetText
@@ -89,8 +91,12 @@ var targets_allowed: int = 1
 var current_targets_selected: Array = []
 var pending_damage_amount: int = 0
 
+var lightning_vfx_scene = preload("res://lightning_effect.tscn")
+
 var reticle_scene = preload("res://target_reticle.tscn") # Make sure you saved your crosshair scene!
 var spawned_reticles: Array[Node3D] = []
+
+var lightning_sound = preload("res://sounds/thunda.mp3")
 
 # Inside main_game.gd near your other array trackers:
 var discard_graveyard_pool: Array[Node3D] = []
@@ -1210,6 +1216,24 @@ func execute_tactical_attack():
 			if target_pie.has_method("take_damage"):
 				# Deal the damage!
 				target_pie.take_damage(pending_damage_amount, r.global_position)
+				
+				# --- THE MISSING VFX CODE ---
+				var lightning = lightning_vfx_scene.instantiate()
+				add_child(lightning) # Add it to the main game board!
+				
+				# Move it exactly to where the red crosshair is
+				lightning.global_position = r.global_position + Vector3(0, 0, 0)
+				
+				var particles = lightning.get_node_or_null("GPUParticles3D")
+				if particles:
+					particles.emitting = true
+					
+				get_tree().create_timer(2.0).timeout.connect(lightning.queue_free)
+				# ----------------------------
+
+				# Play the lightning sound!
+				sfx_player.stream = lightning_sound
+				sfx_player.play()
 				
 				# Hide the crosshair the exact millisecond the damage hits
 				r.visible = false 
