@@ -1,0 +1,4 @@
+[gd_resource type="VisualShader" format=3 uid="uid://vp5u2eumnmr0"]
+
+[resource]
+flags/unshaded = true

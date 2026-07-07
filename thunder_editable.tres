@@ -2,14 +2,20 @@
 
 [ext_resource type="Shader" uid="uid://djqavwgcmqlur" path="res://mark_shader.tres" id="1_uyquf"]
 [ext_resource type="Shader" uid="uid://bccxwouvbmmo1" path="res://thunder.tres" id="1_xkgnm"]
+[ext_resource type="Shader" uid="uid://vp5u2eumnmr0" path="res://wave_shader.tres" id="3_gaqri"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_uyquf"]
 render_priority = 0
 shader = ExtResource("1_uyquf")
+shader_parameter/Mark_Color = Color(0.735357, 1, 1, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gaqri"]
 render_priority = 0
 shader = ExtResource("1_xkgnm")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2lflq"]
+render_priority = 0
+shader = ExtResource("3_gaqri")
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_j6loh"]
 _surfaces = [{
@@ -76,6 +82,7 @@ _surfaces = [{
 "format": 34896613399,
 "index_count": 192,
 "index_data": PackedByteArray("AAABAAIAAgABAAMABAAAAAIABQAAAAQABgAFAAQABwAFAAYACAAHAAYACQAHAAgACgAJAAgACwAJAAoADAALAAoADQALAAwADgANAAwADwANAA4AEAAPAA4AEQAPABAAEgARABAAEwARABIAFAATABIAFQATABQAFgAVABQAFwAVABYAGAAXABYAGQAXABgAGgAZABgAGwAZABoAHAAbABoAHQAbABwAHgAdABwAHwAdAB4AIAAfAB4AIQAfACAAIgAhACAAIwAhACIAJAAjACIAJQAjACQAJgAlACQAJwAlACYAKAAnACYAKQAnACgAKgApACgAKwApACoALAArACoALQArACwALgAtACwALwAtAC4AMAAvAC4AMQAvADAAMgAxADAAMwAxADIANAAzADIANQAzADQANgA1ADQANwA1ADYAOAA3ADYAOQA3ADgAOgA5ADgAOwA5ADoAPAA7ADoAPQA7ADwAPgA9ADwAPwA9AD4AQAA/AD4AQQA/AEAA"),
+"material": SubResource("ShaderMaterial_2lflq"),
 "name": "Material",
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
