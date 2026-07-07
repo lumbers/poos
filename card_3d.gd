@@ -37,14 +37,6 @@ func _ready():
 		
 	if hp_tracker:
 		hp_tracker.visible = false
-	
-	# If this card is a boss, play an epic entry sound!
-	if card_info != null and card_info.is_boss:
-		# Copy the path to your roar .wav file here!
-		var roar_sfx = preload("res://sounds/lightning_strike.mp3") 
-		if entry_sound:
-			entry_sound.stream = roar_sfx
-			entry_sound.play()
 
 # --- NEW FUNCTION TO UPDATE AND DISPLAY HEALTH ---
 # --- UPDATE LIVE HP FUNCTION ---
@@ -76,6 +68,24 @@ func take_damage(amount: int, hit_pos: Vector3 = Vector3.ZERO):
 		update_field_hp_display()
 
 func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector3, normal: Vector3, shape_idx: int):
+	if is_on_board and event is InputEventMouseMotion:
+		if main_game and main_game.get("is_discard_phase") == false:
+			is_hovered = true
+			_on_mouse_entered()
+
+	if is_on_board and card_info and card_info.card_type.to_lower() != "pie":
+		return
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		print("CLICK DETECTED on: ", card_info.card_name, " | is_on_board: ", is_on_board) 
+		
+		# THIS HANDLES OUR DISCARD HIGHLIGHTS ALREADY!
+		if main_game and main_game.get("is_discard_phase") == true:
+			if not is_on_board: 
+				main_game.toggle_card_discard_selection(self)
+			return
+			
+		# ... (Keep the rest of the function below this unchanged)
 	if is_on_board and event is InputEventMouseMotion:
 		if main_game and main_game.get("is_discard_phase") == false:
 			is_hovered = true

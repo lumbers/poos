@@ -74,6 +74,9 @@ var original_camera_pos: Vector3
 var original_camera_rot: Vector3
 var is_in_attack_phase: bool = false
 
+var is_in_boss_tribute: bool = false
+var current_tributes_selected: Array[Node3D] = []
+
 # --- ADD THESE NEAR YOUR OTHER MARKERS AND POOLS ---
 @onready var opponent_discard_pile_marker = $BoardSlots/OpponentDiscardPileMarker
 var opponent_graveyard_pool: Array[Node3D] = []
@@ -118,8 +121,11 @@ var current_hovered_ghost_slot: Area3D = null
 var is_discard_phase: bool = false
 var marked_for_discard: Array[Node3D] = []
 
+# Replace your old enum and boss variables with these two lines:
+enum DiscardMode { NONE, HAND_LIMIT, SWITCHING, BOSS_TRIBUTE }
+var pending_boss_card: Node3D = null
+
 # --- NEW DISCARD & SWITCHING STATES ---
-enum DiscardMode { NONE, HAND_LIMIT, SWITCHING }
 var current_discard_mode: DiscardMode = DiscardMode.NONE
 
 var is_rearranging_field: bool = false
@@ -145,8 +151,11 @@ func _ready():
 	if confirm_discard_button and not confirm_discard_button.pressed.is_connected(_on_confirm_discard_pressed):
 		confirm_discard_button.pressed.connect(_on_confirm_discard_pressed)
 		
-	if cancel_tactical_button and not cancel_tactical_button.pressed.is_connected(cancel_attack_phase):
-		cancel_tactical_button.pressed.connect(cancel_attack_phase)
+	if cancel_tactical_button and not cancel_tactical_button.pressed.is_connected(_on_tactical_cancel_pressed):
+		cancel_tactical_button.pressed.connect(_on_tactical_cancel_pressed)
+		
+	if confirm_button and not confirm_button.pressed.is_connected(_on_tactical_confirm_pressed):
+		confirm_button.pressed.connect(_on_tactical_confirm_pressed)
 	
 	if remove_target_button: remove_target_button.pressed.connect(undo_last_target)
 	
@@ -191,6 +200,14 @@ func _ready():
 		move2_button.pressed.connect(_on_move2_pressed)
 	if cancel_overlay_button and not cancel_overlay_button.pressed.is_connected(cancel_attack_phase):
 		cancel_overlay_button.pressed.connect(cancel_attack_phase)
+
+func _on_tactical_confirm_pressed():
+	if is_in_tactical_targeting: execute_tactical_attack()
+	elif is_in_boss_tribute: finalize_boss_summon()
+
+func _on_tactical_cancel_pressed():
+	if is_in_tactical_targeting: cancel_attack_phase()
+	elif is_in_boss_tribute: cancel_boss_summon()
 
 func update_hud_display():
 	if actions_label:
@@ -348,6 +365,10 @@ func try_place_pie_on_field(card_node: Node3D):
 					card_node.get_node("Area3D").input_ray_pickable = true
 				if card_node.has_method("update_field_hp_display"):
 					card_node.update_field_hp_display()
+					
+				# --- NEW: INTERCEPT BOSS SUMMONS ---
+				if card_node.card_info != null and card_node.card_info.is_boss:
+					start_boss_tribute_phase(card_node)
 		)
 	else:
 		if card_node.has_method("_cancel_dragging"): card_node._cancel_dragging()
@@ -404,11 +425,16 @@ func _on_confirm_discard_pressed():
 		if marked_for_discard.size() != 2:
 			print("You MUST discard exactly 2 cards to switch!")
 			return
-		# Successfully paid! Deduct 1 energy.
 		current_energy -= 1 
 
+	# --- NEW: BOSS TRIBUTE ENFORCEMENT ---
+	elif current_discard_mode == DiscardMode.BOSS_TRIBUTE:
+		if marked_for_discard.size() != 3:
+			print("You MUST discard exactly 3 cards to summon a boss!")
+			return
+
 	print("Processing burning selection...")
-	var finished_mode = current_discard_mode # Save the mode so we know what to do at the end
+	var finished_mode = current_discard_mode
 	
 	is_discard_phase = false
 	current_discard_mode = DiscardMode.NONE
@@ -454,8 +480,15 @@ func _on_confirm_discard_pressed():
 	if finished_mode == DiscardMode.HAND_LIMIT:
 		start_new_turn()
 	elif finished_mode == DiscardMode.SWITCHING:
-		# FIRE THE SWAP ANIMATION HERE!
 		execute_paid_switch()
+	# --- NEW: ROAR ON SUCCESSFUL BOSS SUMMON ---
+	elif finished_mode == DiscardMode.BOSS_TRIBUTE:
+		if is_instance_valid(pending_boss_card):
+			if pending_boss_card.has_node("EntrySound"):
+				var roar = preload("res://sounds/lightning_strike.mp3") # Replace with your boss roar!
+				pending_boss_card.get_node("EntrySound").stream = roar
+				pending_boss_card.get_node("EntrySound").play()
+			pending_boss_card = null
 
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):
@@ -685,7 +718,9 @@ func _unhandled_input(event):
 		cancel_attack_phase()
 
 func cancel_switching_discard():
-	print("Action cancelled!")
+	print("Discard action cancelled!")
+	var was_boss_mode = (current_discard_mode == DiscardMode.BOSS_TRIBUTE)
+	
 	is_discard_phase = false
 	current_discard_mode = DiscardMode.NONE
 	
@@ -696,9 +731,25 @@ func cancel_switching_discard():
 	
 	if discard_overlay: discard_overlay.visible = false
 	if confirm_discard_button: confirm_discard_button.visible = false
+	if cancel_button: cancel_button.visible = false
 	
-	# QoL FIX: Hitting escape/cancel purges the entire board layout state!
 	clear_field_selection()
+	
+	# --- NEW: RETURN BOSS TO HAND IF CANCELLED ---
+	if was_boss_mode and is_instance_valid(pending_boss_card):
+		# 1. Un-assign it from the board logic
+		if active_slot_card == pending_boss_card: 
+			active_slot_card = null
+		else:
+			for i in range(bench_slot_cards.size()):
+				if bench_slot_cards[i] == pending_boss_card:
+					bench_slot_cards[i] = null
+					break
+		
+		# 2. Add it seamlessly back to the hand manager
+		pending_boss_card.is_on_board = false
+		_add_to_hand_seamlessly(pending_boss_card)
+		pending_boss_card = null
 	
 # ==========================================================
 # 🔄 FIELD SWITCHING & MOVEMENT LOGIC
@@ -852,7 +903,6 @@ func execute_free_move_up():
 
 # --- UPDATE DISCARD TEXT UI ---
 func update_discard_ui_counters():
-	# Get a reference to your old Hand Limit label (check this node path matches yours!)
 	var old_hand_label = get_node_or_null("UI/DiscardOverlay/DiscardInstructionLabel")
 	
 	if current_discard_mode == DiscardMode.SWITCHING:
@@ -862,6 +912,16 @@ func update_discard_ui_counters():
 			discard_title.visible = true
 		if discard_counter: 
 			discard_counter.text = str(marked_for_discard.size()) + " / 2"
+			discard_counter.visible = true
+			
+	# --- NEW BOSS TRIBUTE TEXT ---
+	elif current_discard_mode == DiscardMode.BOSS_TRIBUTE:
+		if old_hand_label: old_hand_label.visible = false
+		if discard_title: 
+			discard_title.text = "Discard 3 cards to summon Boss"
+			discard_title.visible = true
+		if discard_counter: 
+			discard_counter.text = str(marked_for_discard.size()) + " / 3"
 			discard_counter.visible = true
 			
 	elif current_discard_mode == DiscardMode.HAND_LIMIT:
@@ -1221,6 +1281,10 @@ func execute_tactical_attack():
 				var lightning = lightning_vfx_scene.instantiate()
 				add_child(lightning) # Add it to the main game board!
 				
+				# --- NEW: SCALE THE LIGHTNING HERE! ---
+				# 1.0 is normal size. 0.5 is half size. 2.0 is double size!
+				lightning.scale = Vector3(0.5, 0.5, 0.5)
+				
 				# Move it exactly to where the red crosshair is
 				lightning.global_position = r.global_position + Vector3(0, 0, 0)
 				
@@ -1290,3 +1354,76 @@ func undo_last_target():
 		$TacticalOverlay/Control/TargetText.text = "Select " + str(remaining) + " Targets"
 	if has_node("TacticalOverlay/Control/ConfirmButton"):
 		$TacticalOverlay/Control/ConfirmButton.visible = false
+
+func start_boss_tribute_phase(boss_card: Node3D):
+	pending_boss_card = boss_card
+	
+	is_discard_phase = true
+	current_discard_mode = DiscardMode.BOSS_TRIBUTE
+	marked_for_discard.clear()
+	
+	if discard_overlay: discard_overlay.visible = true
+	if confirm_discard_button: confirm_discard_button.visible = true
+	if cancel_button: cancel_button.visible = true # Turn on the standard Cancel button!
+	
+	update_discard_ui_counters()
+
+func add_tribute_target(hand_card: Node3D):
+	if current_tributes_selected.size() >= 3: return
+	if hand_card in current_tributes_selected: return # Prevent double-clicking the same card
+
+	current_tributes_selected.append(hand_card)
+
+	# Stamp the red reticle perfectly on the hand card!
+	var reticle = reticle_scene.instantiate()
+	hand_card.add_child(reticle)
+	reticle.scale = Vector3(0.05, 0.05, 0.05)
+	reticle.set_meta("target_pie", hand_card)
+	spawned_reticles.append(reticle)
+	rearrange_reticles_on_pie(hand_card) 
+
+	var remaining = 3 - current_tributes_selected.size()
+	if has_node("TacticalOverlay/Control/TargetText"):
+		$TacticalOverlay/Control/TargetText.text = "Tribute " + str(remaining) + " Cards"
+
+	if remaining == 0:
+		$TacticalOverlay/Control/ConfirmButton.visible = true
+
+func finalize_boss_summon():
+	$TacticalOverlay.visible = false
+	is_in_boss_tribute = false
+
+	# 1. Destroy the 3 tributed cards! 
+	for t_card in current_tributes_selected:
+		if is_instance_valid(t_card):
+			t_card.queue_free() # (Later, we can animate these flying to the Graveyard!)
+
+	# 2. Clean up the reticles
+	for r in spawned_reticles:
+		if is_instance_valid(r): r.queue_free()
+	spawned_reticles.clear()
+	current_tributes_selected.clear()
+
+	# 3. NOW trigger the Boss Entry Roar since the cost was paid!
+	if is_instance_valid(pending_boss_card):
+		if pending_boss_card.has_node("EntrySound"):
+			var roar = preload("res://sounds/lightning_strike.mp3")
+			pending_boss_card.get_node("EntrySound").stream = roar
+			pending_boss_card.get_node("EntrySound").play()
+	pending_boss_card = null
+
+func cancel_boss_summon():
+	$TacticalOverlay.visible = false
+	is_in_boss_tribute = false
+
+	for r in spawned_reticles:
+		if is_instance_valid(r): r.queue_free()
+	spawned_reticles.clear()
+	current_tributes_selected.clear()
+
+	# Abort! Send the Boss gliding back to your hand!
+	if is_instance_valid(pending_boss_card):
+		pending_boss_card.is_on_board = false
+		var tween = create_tween()
+		tween.tween_property(pending_boss_card, "global_position", pending_boss_card.default_position, 0.4).set_ease(Tween.EASE_OUT)
+	pending_boss_card = null
