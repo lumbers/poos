@@ -11,7 +11,8 @@ gradient = SubResource("Gradient_a202f")
 lifetime_randomness = 0.1
 particle_flag_rotate_y = true
 gravity = Vector3(0, 0, 0)
-scale_max = 31.769999
+scale_min = 0.0
+scale_max = 2.0
 color_ramp = SubResource("GradientTexture1D_noarx")
 
 [node name="Node3D" type="Node3D" unique_id=663748546]
@@ -20,5 +21,6 @@ color_ramp = SubResource("GradientTexture1D_noarx")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05016899, -1.1920929e-07, -0.14722848)
 amount = 1
 lifetime = 0.25
+fixed_fps = 100
 process_material = SubResource("ParticleProcessMaterial_a0tk4")
 draw_pass_1 = ExtResource("1_a202f")

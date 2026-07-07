@@ -24,8 +24,8 @@ input_name = "color"
 [sub_resource type="VisualShaderNodeRemap" id="VisualShaderNodeRemap_f8u6y"]
 
 [sub_resource type="Gradient" id="Gradient_yyb4p"]
-offsets = PackedFloat32Array(0.14893617, 0.7074468, 1)
-colors = PackedColorArray(0.3491902, 0, 1.8247963, 1, 0.3491902, 0, 1.8247963, 1, 1.0948416, 0.29427257, 0.69630754, 1)
+offsets = PackedFloat32Array(0.13829787, 0.5159575, 0.9893617)
+colors = PackedColorArray(0.9704851, 0.6547645, 0, 1, 1.536124, 1.0544928, 0.19452575, 1, 1.0911074, 0.8644335, 0.5908292, 1)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_m65eb"]
 gradient = SubResource("Gradient_yyb4p")

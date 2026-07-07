@@ -7,7 +7,7 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_uyquf"]
 render_priority = 0
 shader = ExtResource("1_uyquf")
-shader_parameter/Mark_Color = Color(0.735357, 1, 1, 1)
+shader_parameter/Mark_Color = Color(1, 0.9705494, 0.5025712, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gaqri"]
 render_priority = 0
@@ -16,7 +16,7 @@ shader = ExtResource("1_xkgnm")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_2lflq"]
 render_priority = 0
 shader = ExtResource("3_gaqri")
-shader_parameter/Wave_Color = Color(0.7379854, 1, 1.8247963, 1)
+shader_parameter/Wave_Color = Color(1.7639339, 1.477815, 0.98072153, 1)
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_j6loh"]
 _surfaces = [{
