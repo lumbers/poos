@@ -5,6 +5,8 @@ extends Node3D
 @export var card_info: CardData
 @onready var preview_panel = get_node("/root/MainGame/CanvasLayer/CardPreviewPanel")
 
+@export var is_flying: bool = false
+
 # --- NEW HP FLOATING TRACKER NODE ---
 @onready var hp_tracker = $HPTracker
 var is_opponent: bool = false
@@ -466,9 +468,9 @@ func spawn_damage_number(amount: int, hit_pos: Vector3 = Vector3.ZERO):
 func heal_pie(amount: int):
 	current_hp += amount
 	
-	# Prevent healing past their original Max HP!
+	# THE FIX: If he heals past his max, raise his maximum limit permanently!
 	if current_hp > peak_hp:
-		current_hp = peak_hp
+		peak_hp = current_hp 
 		
 	spawn_healing_number(amount)
 	update_field_hp_display()

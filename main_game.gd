@@ -221,16 +221,21 @@ func update_hud_display():
 		opponent_lp_label.text = "Enemy LP: " + str(opponent_lp)
 
 func _on_deck_clicked():
-	if is_discard_phase: return # Block drawing while forced to discard!
+	# --- THE FIX: Block drawing during ANY special phase or attack! ---
+	if is_discard_phase or is_in_attack_phase or is_in_tactical_targeting: 
+		return 
 	
 	var draw_cost = 1
 	if current_energy < draw_cost:
 		print("Not enough actions left to draw!")
+		# Optional: You can spawn your floating error text here too!
+		spawn_floating_error_text("Not enough actions!", get_viewport().get_mouse_position())
 		return
 		
 	if card_pool.is_empty(): return
 		
 	current_energy -= draw_cost
+	# ... (Keep the rest of your drawing animation code exactly the same below this!)
 	var random_data = card_pool.pick_random()
 	var new_card = card_manager.card_scene.instantiate()
 	new_card.card_info = random_data
@@ -326,7 +331,13 @@ func try_place_pie_on_field(card_node: Node3D):
 
 	# --- 3. ANIMATION EXECUTION PHASE ---
 	if placement_successful:
-		current_energy -= play_cost
+		
+		# --- THE FIX: Only charge energy instantly if it's NOT a boss! ---
+		var is_boss = card_node.card_info != null and card_node.card_info.is_boss
+		if not is_boss:
+			current_energy -= play_cost
+			# (Removed the broken tracker variable from here!)
+		
 		card_node.is_on_board = true
 		card_node.get_parent().remove_child(card_node)
 		set_ghost_slots_visible(false, true)
@@ -376,10 +387,15 @@ func try_place_pie_on_field(card_node: Node3D):
 # --- REVISED END TURN BUTTON CLICKED ---
 # Find your _on_end_turn_pressed() function and update it to this:
 func _on_end_turn_pressed():
+	# --- NEW: TRIGGER PASSIVES BEFORE THE TURN ENDS ---
+	execute_end_of_turn_passives()
+	
 	# --- FIX 1: IMMEDIATELY CANCEL ANY SWITCHING/SELECTION ---
 	if current_discard_mode == DiscardMode.SWITCHING:
 		cancel_switching_discard()
 	clear_field_selection()
+	
+	# ... (Keep the rest of your hand-limit check code here) ...
 	
 	var hand_count = card_manager.get_child_count()
 	
@@ -426,6 +442,7 @@ func _on_confirm_discard_pressed():
 			print("You MUST discard exactly 2 cards to switch!")
 			return
 		current_energy -= 1 
+		
 
 	# --- NEW: BOSS TRIBUTE ENFORCEMENT ---
 	elif current_discard_mode == DiscardMode.BOSS_TRIBUTE:
@@ -434,15 +451,27 @@ func _on_confirm_discard_pressed():
 			return
 
 	print("Processing burning selection...")
-	var finished_mode = current_discard_mode
+	var finished_mode = current_discard_mode 
 	
 	is_discard_phase = false
 	current_discard_mode = DiscardMode.NONE
 	
-	if discard_overlay:
-		discard_overlay.visible = false
-	if confirm_discard_button:
-		confirm_discard_button.visible = false
+	if discard_overlay: discard_overlay.visible = false
+	if confirm_discard_button: confirm_discard_button.visible = false
+	if cancel_button: cancel_button.visible = false
+	
+	# Delete the actual cards!
+	for card in marked_for_discard:
+		if is_instance_valid(card):
+			card.queue_free()
+			
+	# ---> PUT THE EVENT BUS SIGNAL RIGHT HERE! <---
+	# This shouts to the whole game: "Hey! Cards were just discarded!"
+	if EventBus:
+		EventBus.emit_signal("cards_discarded", marked_for_discard.size())
+		
+	marked_for_discard.clear()
+	clear_field_selection()
 		
 	# --- 2. FLY CARDS TO DISCARD PILE ---
 	for dead_card in marked_for_discard:
@@ -483,9 +512,14 @@ func _on_confirm_discard_pressed():
 		execute_paid_switch()
 	# --- NEW: ROAR ON SUCCESSFUL BOSS SUMMON ---
 	elif finished_mode == DiscardMode.BOSS_TRIBUTE:
+		
+		# ---> DEDUCT THE ACTION POINT HERE INSTEAD! <---
+		current_energy -= 1
+		update_hud_display() # (Removed the broken tracker variable from here too!)
+		
 		if is_instance_valid(pending_boss_card):
 			if pending_boss_card.has_node("EntrySound"):
-				var roar = preload("res://sounds/lightning_strike.mp3") # Replace with your boss roar!
+				var roar = preload("res://sounds/thunda.mp3") 
 				pending_boss_card.get_node("EntrySound").stream = roar
 				pending_boss_card.get_node("EntrySound").play()
 			pending_boss_card = null
@@ -745,6 +779,12 @@ func cancel_switching_discard():
 				if bench_slot_cards[i] == pending_boss_card:
 					bench_slot_cards[i] = null
 					break
+					
+		# --- THE FIXES ---
+		
+		if pending_boss_card.has_node("HPTracker"):
+			pending_boss_card.get_node("HPTracker").visible = false # HIDE THE GHOST HP!
+		# -----------------
 		
 		# 2. Add it seamlessly back to the hand manager
 		pending_boss_card.is_on_board = false
@@ -1240,7 +1280,8 @@ func add_tactical_target(pie: Node3D):
 		$TacticalOverlay/Control/TargetText.text = "Select " + str(remaining) + " Targets"
 
 	# 4. Show Confirm Button if we hit the max!
-	if remaining == 0:
+	# --- FIX: Use <= instead of == to catch fast clicks! ---
+	if remaining <= 0:
 		$TacticalOverlay/Control/ConfirmButton.visible = true
 		
 func rearrange_reticles_on_pie(pie: Node3D):
@@ -1362,9 +1403,15 @@ func start_boss_tribute_phase(boss_card: Node3D):
 	current_discard_mode = DiscardMode.BOSS_TRIBUTE
 	marked_for_discard.clear()
 	
+	# --- THE FIX: Force the combat UI to hide! ---
+	if attack_button: attack_button.visible = false
+	if free_move_up_button: free_move_up_button.visible = false
+	if switch_button: switch_button.visible = false
+	clear_field_selection()
+	
 	if discard_overlay: discard_overlay.visible = true
 	if confirm_discard_button: confirm_discard_button.visible = true
-	if cancel_button: cancel_button.visible = true # Turn on the standard Cancel button!
+	if cancel_button: cancel_button.visible = true 
 	
 	update_discard_ui_counters()
 
@@ -1427,3 +1474,33 @@ func cancel_boss_summon():
 		var tween = create_tween()
 		tween.tween_property(pending_boss_card, "global_position", pending_boss_card.default_position, 0.4).set_ease(Tween.EASE_OUT)
 	pending_boss_card = null
+
+func execute_end_of_turn_passives():
+	# Check if the player's active card is Ghidorah
+	if active_slot_card != null and active_slot_card.card_info.card_name.to_lower() == "ghidorah":
+		print("Ghidorah's Passive triggers!")
+		
+		# 1. Scan the main game board for ANY enemy cards (Active or Benched)
+		var valid_targets = []
+		for node in get_children():
+			if node.get("is_opponent") == true and node.get("is_on_board") == true:
+				if node.has_method("take_damage"):
+					valid_targets.append(node)
+					
+		# 2. Pick a random target from the list and blast it!
+		if valid_targets.size() > 0:
+			var random_target = valid_targets.pick_random()
+			random_target.take_damage(50)
+			
+			# Spawn your lightning strike on the random target!
+			var lightning = lightning_vfx_scene.instantiate()
+			add_child(lightning)
+			lightning.global_position = random_target.global_position + Vector3(0, 0, 0)
+			if lightning.get_node_or_null("GPUParticles3D"):
+				lightning.get_node("GPUParticles3D").emitting = true
+			get_tree().create_timer(2.0).timeout.connect(lightning.queue_free)
+			
+			# Play the sound
+			if sfx_player:
+				sfx_player.stream = preload("res://sounds/lightning_strike.mp3")
+				sfx_player.play()
