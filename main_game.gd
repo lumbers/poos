@@ -442,7 +442,6 @@ func _on_confirm_discard_pressed():
 			print("You MUST discard exactly 2 cards to switch!")
 			return
 		current_energy -= 1 
-		
 
 	# --- NEW: BOSS TRIBUTE ENFORCEMENT ---
 	elif current_discard_mode == DiscardMode.BOSS_TRIBUTE:
@@ -461,8 +460,13 @@ func _on_confirm_discard_pressed():
 	if cancel_button: cancel_button.visible = false
 	
 	# Delete the actual cards!
+	# Delete the actual cards!
 	for card in marked_for_discard:
 		if is_instance_valid(card):
+			# --- THE FIX: Instantly rip it out of the manager's list! ---
+			if card.get_parent():
+				card.get_parent().remove_child(card)
+			# Now queue it for deletion safely
 			card.queue_free()
 			
 	# ---> PUT THE EVENT BUS SIGNAL RIGHT HERE! <---
@@ -504,9 +508,15 @@ func _on_confirm_discard_pressed():
 	update_graveyard_mouse_priorities()
 	marked_for_discard.clear()
 	
+	update_graveyard_mouse_priorities()
+	marked_for_discard.clear()
+	
 	# --- THE FIX FOR HAND CENTERING ---
-	# Force the manager to forget any hovered cards so the gap closes!
 	if card_manager:
+		# Force every surviving card to forget the mouse
+		for remaining_card in card_manager.get_children():
+			remaining_card.is_hovered = false
+			
 		card_manager.hovered_card_index = -1
 		card_manager.arrange_hand()
 	
