@@ -1,3 +1,17 @@
 [gd_resource type="VisualShader" format=3 uid="uid://dg46b12n7vuja"]
 
+[ext_resource type="Texture2D" uid="uid://bdno1dvctuo3e" path="res://cards/art/a.png" id="1_ebmce"]
+
+[sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_qudko"]
+texture = ExtResource("1_ebmce")
+
+[sub_resource type="VisualShaderNodeUVFunc" id="VisualShaderNodeUVFunc_ucl3h"]
+
 [resource]
+modes/cull = 2
+flags/unshaded = true
+nodes/vertex/0/position = Vector2(440, 120)
+nodes/vertex/2/node = SubResource("VisualShaderNodeTexture_qudko")
+nodes/vertex/2/position = Vector2(40, 220)
+nodes/vertex/3/node = SubResource("VisualShaderNodeUVFunc_ucl3h")
+nodes/vertex/3/position = Vector2(-260, 360)

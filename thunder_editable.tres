@@ -1,5 +1,13 @@
 [gd_resource type="ArrayMesh" format=4 uid="uid://cr5nirtnkld5l"]
 
+[ext_resource type="Shader" uid="uid://dg46b12n7vuja" path="res://thunder_shader.tres" id="1_xkgnm"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_uyquf"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gaqri"]
+render_priority = 0
+shader = ExtResource("1_xkgnm")
+
 [sub_resource type="ArrayMesh" id="ArrayMesh_j6loh"]
 _surfaces = [{
 "aabb": AABB(-1, 0, -1, 2, 1e-05, 2),
@@ -41,6 +49,7 @@ _surfaces = [{
 "format": 34896613399,
 "index_count": 6,
 "index_data": PackedByteArray("AAABAAIAAgABAAMA"),
+"material": SubResource("ShaderMaterial_uyquf"),
 "name": "Material",
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
@@ -52,6 +61,7 @@ _surfaces = [{
 "format": 34896613399,
 "index_count": 102,
 "index_data": PackedByteArray("AAABAAIAAgABAAMAAAAEAAEABQAEAAAABQAGAAQABwAGAAUABwAIAAYACQAIAAcACQAKAAgACwAKAAkACwAMAAoADQAMAAsADQAOAAwADwAOAA0ADwAQAA4AEQAQAA8AEQASABAAEwASABEAEwAUABIAFQAUABMAFQAWABQAFwAWABUAFwAYABYAGQAYABcAGQAaABgAGwAaABkAGwAcABoAHQAcABsAHQAeABwAHwAeAB0AHwAgAB4AIQAgAB8AIQAiACAAIwAiACEA"),
+"material": SubResource("ShaderMaterial_gaqri"),
 "name": "Material",
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),

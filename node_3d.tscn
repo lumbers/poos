@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://ch62vemx2ow2n"]
+
+[ext_resource type="ArrayMesh" uid="uid://cr5nirtnkld5l" path="res://thunder_editable.tres" id="1_a202f"]
+
+[node name="Node3D" type="Node3D" unique_id=663748546]
+
+[node name="ThunderMesh" type="MeshInstance3D" parent="." unique_id=304035031]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08043122, -1.1920929e-07, -0.14722848)
+mesh = ExtResource("1_a202f")
