@@ -16,6 +16,7 @@ shader = ExtResource("1_xkgnm")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_2lflq"]
 render_priority = 0
 shader = ExtResource("3_gaqri")
+shader_parameter/Wave_Color = Color(0.7379854, 1, 1.8247963, 1)
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_j6loh"]
 _surfaces = [{

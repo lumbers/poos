@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cpqm25oi5dnqm"
-path.s3tc="res://.godot/imported/bom.png-a00cfc78298302085bf8f3d2c2552355.s3tc.ctex"
+uid="uid://dtjuqm71rgsk"
+path.s3tc="res://.godot/imported/d.png-85e4866ef4cec048b2cac6fb55de7853.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://cards/art/bom.png"
-dest_files=["res://.godot/imported/bom.png-a00cfc78298302085bf8f3d2c2552355.s3tc.ctex"]
+source_file="res://cards/art/d.png"
+dest_files=["res://.godot/imported/d.png-85e4866ef4cec048b2cac6fb55de7853.s3tc.ctex"]
 
 [params]
 

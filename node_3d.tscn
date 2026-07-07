@@ -8,7 +8,10 @@
 gradient = SubResource("Gradient_a202f")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_a0tk4"]
+lifetime_randomness = 0.1
+particle_flag_rotate_y = true
 gravity = Vector3(0, 0, 0)
+scale_max = 31.769999
 color_ramp = SubResource("GradientTexture1D_noarx")
 
 [node name="Node3D" type="Node3D" unique_id=663748546]
