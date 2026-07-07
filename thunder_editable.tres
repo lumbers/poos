@@ -1,8 +1,11 @@
 [gd_resource type="ArrayMesh" format=4 uid="uid://cr5nirtnkld5l"]
 
-[ext_resource type="Shader" uid="uid://dg46b12n7vuja" path="res://thunder_shader.tres" id="1_xkgnm"]
+[ext_resource type="Shader" uid="uid://djqavwgcmqlur" path="res://mark_shader.tres" id="1_uyquf"]
+[ext_resource type="Shader" uid="uid://bccxwouvbmmo1" path="res://thunder.tres" id="1_xkgnm"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_uyquf"]
+render_priority = 0
+shader = ExtResource("1_uyquf")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gaqri"]
 render_priority = 0
