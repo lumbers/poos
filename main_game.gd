@@ -74,6 +74,8 @@ var original_camera_pos: Vector3
 var original_camera_rot: Vector3
 var is_in_attack_phase: bool = false
 
+var pending_boss_target_pos: Vector3 = Vector3.ZERO
+
 var is_in_boss_tribute: bool = false
 var current_tributes_selected: Array[Node3D] = []
 
@@ -331,13 +333,10 @@ func try_place_pie_on_field(card_node: Node3D):
 
 	# --- 3. ANIMATION EXECUTION PHASE ---
 	if placement_successful:
-		
-		# --- THE FIX: Only charge energy instantly if it's NOT a boss! ---
 		var is_boss = card_node.card_info != null and card_node.card_info.is_boss
 		if not is_boss:
 			current_energy -= play_cost
-			# (Removed the broken tracker variable from here!)
-		
+
 		card_node.is_on_board = true
 		card_node.get_parent().remove_child(card_node)
 		set_ghost_slots_visible(false, true)
@@ -348,42 +347,51 @@ func try_place_pie_on_field(card_node: Node3D):
 		var camera_front_pos = camera_3d.global_transform.origin + cam_forward * 1.3
 		var field_scale = Vector3(0.85, 0.85, 0.85)
 		
+		# 1. EVERY card flies up to the camera first
 		var tween = create_tween()
 		var fly = tween.parallel()
 		fly.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		fly.tween_property(card_node, "global_position", camera_front_pos, 0.1)
-		fly.tween_property(card_node, "global_transform:basis", camera_3d.global_transform.basis, 0.1)
+		fly.tween_property(card_node, "global_position", camera_front_pos, 0.15)
+		fly.tween_property(card_node, "global_transform:basis", camera_3d.global_transform.basis, 0.15)
 
-		tween.chain().tween_interval(0)
-
-		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
-		var slam = tween.chain().parallel()
-		slam.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
-		slam.tween_property(card_node, "global_position", target_global_position + Vector3(0, 0.02, 0), 0.22)
-		slam.tween_property(card_node, "scale", field_scale, 0.22)
-
-		card_manager.arrange_hand()
-		update_hud_display()
-
-		tween.chain().tween_callback(func():
-			card_node.is_on_board = true
-			if not is_pie:
-				discard_graveyard_pool.append(card_node)
-				update_graveyard_mouse_priorities()
-			else:
+		if is_boss:
+			# --- BOSS HOVER MODE ---
+			# Save the destination for later, then trigger the tribute UI while it hovers!
+			pending_boss_target_pos = target_global_position + Vector3(0, 0.02, 0)
+			
+			tween.chain().tween_callback(func():
 				if card_node.has_node("Area3D"):
 					card_node.get_node("Area3D").input_ray_pickable = true
 				if card_node.has_method("update_field_hp_display"):
 					card_node.update_field_hp_display()
-					
-				# --- NEW: INTERCEPT BOSS SUMMONS ---
-				if card_node.card_info != null and card_node.card_info.is_boss:
-					start_boss_tribute_phase(card_node)
-		)
+				start_boss_tribute_phase(card_node)
+			)
+		else:
+			# --- NORMAL SLAM MODE ---
+			# Instantly chain the downward slam for normal pies
+			tween.chain().tween_interval(0)
+			var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+			var slam = tween.chain().parallel()
+			slam.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
+			slam.tween_property(card_node, "global_position", target_global_position + Vector3(0, 0.02, 0), 0.22)
+			slam.tween_property(card_node, "scale", field_scale, 0.22)
+
+			card_manager.arrange_hand()
+			update_hud_display()
+
+			tween.chain().tween_callback(func():
+				if not is_pie:
+					discard_graveyard_pool.append(card_node)
+					update_graveyard_mouse_priorities()
+				else:
+					if card_node.has_node("Area3D"):
+						card_node.get_node("Area3D").input_ray_pickable = true
+					if card_node.has_method("update_field_hp_display"):
+						card_node.update_field_hp_display()
+			)
 	else:
 		if card_node.has_method("_cancel_dragging"): card_node._cancel_dragging()
-		
 # --- REVISED END TURN BUTTON CLICKED ---
 # Find your _on_end_turn_pressed() function and update it to this:
 func _on_end_turn_pressed():
@@ -475,7 +483,8 @@ func _on_confirm_discard_pressed():
 		EventBus.emit_signal("cards_discarded", marked_for_discard.size())
 		
 	marked_for_discard.clear()
-	clear_field_selection()
+	
+	# DELETE THIS LINE! -> clear_field_selection() 
 		
 	# --- 2. FLY CARDS TO DISCARD PILE ---
 	for dead_card in marked_for_discard:
@@ -1462,7 +1471,7 @@ func finalize_boss_summon():
 	# 1. Destroy the 3 tributed cards! 
 	for t_card in current_tributes_selected:
 		if is_instance_valid(t_card):
-			t_card.queue_free() # (Later, we can animate these flying to the Graveyard!)
+			t_card.queue_free()
 
 	# 2. Clean up the reticles
 	for r in spawned_reticles:
@@ -1470,13 +1479,28 @@ func finalize_boss_summon():
 	spawned_reticles.clear()
 	current_tributes_selected.clear()
 
-	# 3. NOW trigger the Boss Entry Roar since the cost was paid!
+	# 3. NOW slam the Boss onto the board!
 	if is_instance_valid(pending_boss_card):
-		if pending_boss_card.has_node("EntrySound"):
-			var roar = preload("res://sounds/lightning_strike.mp3")
-			pending_boss_card.get_node("EntrySound").stream = roar
-			pending_boss_card.get_node("EntrySound").play()
-	pending_boss_card = null
+		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+		var field_scale = Vector3(0.85, 0.85, 0.85)
+		
+		var slam_tween = create_tween().set_parallel(true)
+		slam_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		slam_tween.tween_property(pending_boss_card, "global_transform:basis", flat_basis, 0.22)
+		slam_tween.tween_property(pending_boss_card, "global_position", pending_boss_target_pos, 0.22)
+		slam_tween.tween_property(pending_boss_card, "scale", field_scale, 0.22)
+		
+		# Trigger the roar right as it hits the board!
+		slam_tween.chain().tween_callback(func():
+			if pending_boss_card.has_node("EntrySound"):
+				var roar = preload("res://sounds/lightning_strike.mp3") # Change to roar if you prefer!
+				pending_boss_card.get_node("EntrySound").stream = roar
+				pending_boss_card.get_node("EntrySound").play()
+				
+			card_manager.arrange_hand()
+			update_hud_display()
+			pending_boss_card = null
+		)
 
 func cancel_boss_summon():
 	$TacticalOverlay.visible = false
@@ -1495,31 +1519,41 @@ func cancel_boss_summon():
 	pending_boss_card = null
 
 func execute_end_of_turn_passives():
-	# Check if the player's active card is Ghidorah
-	if active_slot_card != null and active_slot_card.card_info.card_name.to_lower() == "ghidorah":
-		print("Ghidorah's Passive triggers!")
+	# 1. Gather every pie currently on your board
+	var all_my_board_pies = []
+	if active_slot_card != null:
+		all_my_board_pies.append(active_slot_card)
 		
-		# 1. Scan the main game board for ANY enemy cards (Active or Benched)
-		var valid_targets = []
-		for node in get_children():
-			if node.get("is_opponent") == true and node.get("is_on_board") == true:
-				if node.has_method("take_damage"):
-					valid_targets.append(node)
-					
-		# 2. Pick a random target from the list and blast it!
-		if valid_targets.size() > 0:
-			var random_target = valid_targets.pick_random()
-			random_target.take_damage(50)
+	for bench_pie in bench_slot_cards:
+		if bench_pie != null:
+			all_my_board_pies.append(bench_pie)
 			
-			# Spawn your lightning strike on the random target!
-			var lightning = lightning_vfx_scene.instantiate()
-			add_child(lightning)
-			lightning.global_position = random_target.global_position + Vector3(0, 0, 0)
-			if lightning.get_node_or_null("GPUParticles3D"):
-				lightning.get_node("GPUParticles3D").emitting = true
-			get_tree().create_timer(2.0).timeout.connect(lightning.queue_free)
+	# 2. Loop through them and trigger any passives
+	for pie in all_my_board_pies:
+		if pie.card_info.card_name.to_lower() == "ghidorah":
+			print("Ghidorah's Passive triggers from the board!")
 			
-			# Play the sound
-			if sfx_player:
-				sfx_player.stream = preload("res://sounds/lightning_strike.mp3")
-				sfx_player.play()
+			# Scan the main game board for ANY enemy cards
+			var valid_targets = []
+			for node in get_children():
+				if node.get("is_opponent") == true and node.get("is_on_board") == true:
+					if node.has_method("take_damage"):
+						valid_targets.append(node)
+						
+			# Pick a random target from the list and blast it!
+			if valid_targets.size() > 0:
+				var random_target = valid_targets.pick_random()
+				random_target.take_damage(50)
+				
+				# Spawn your lightning strike
+				var lightning = lightning_vfx_scene.instantiate()
+				add_child(lightning)
+				lightning.global_position = random_target.global_position + Vector3(0, 0, 0)
+				if lightning.get_node_or_null("GPUParticles3D"):
+					lightning.get_node("GPUParticles3D").emitting = true
+				get_tree().create_timer(2.0).timeout.connect(lightning.queue_free)
+				
+				# Play the sound
+				if sfx_player:
+					sfx_player.stream = preload("res://sounds/lightning_strike.mp3")
+					sfx_player.play()

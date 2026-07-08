@@ -9,6 +9,7 @@ class_name CardData
 @export var card_art: Texture2D
 @export var use_full_paper_image: bool = false
 @export_multiline var passives_and_attacks: String = "" # Keeping this so your old cards don't break!
+@export var entry_effect: BaseEffect # Triggers when the pie is placed on the board!
 
 @export_category("Pie Specific Details")
 @export var is_half_art: bool = false

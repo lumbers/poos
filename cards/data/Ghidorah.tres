@@ -6,6 +6,7 @@
 [resource]
 script = ExtResource("2_a1vr5")
 card_name = "Ghidorah"
+card_type = "Pie"
 max_hp = 450
 attribute = "Flying"
 card_art = ExtResource("1_k3sd3")
