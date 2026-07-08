@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://bem0apwgbhj8a" path="res://deck_3d.tscn" id="8_4srsv"]
 [ext_resource type="Resource" uid="uid://38l2bmdb8rm1" path="res://cards/data/Ghidorah.tres" id="10_aomqu"]
 [ext_resource type="PackedScene" uid="uid://dqvkp3b0f37yd" path="res://ghost_slot.tscn" id="11_02kkc"]
+[ext_resource type="Shader" uid="uid://d1wm2o7ebtsah" path="res://vin.gdshader" id="12_krmtw"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_yx7mw"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -35,6 +36,9 @@ size = Vector3(3.327, 1.864, 3.482)
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_aomqu"]
 transparency = 1
 albedo_color = Color(0.8784314, 0.26666668, 0.48235294, 0.11764706)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jgkyn"]
+shader = ExtResource("12_krmtw")
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_02kkc"]
 
@@ -361,6 +365,16 @@ offset_right = 0.039978027
 offset_bottom = 0.15997314
 theme_override_font_sizes/font_size = 32
 text = "Move up for free"
+
+[node name="BossVignette" type="ColorRect" parent="UI" unique_id=235168515]
+visible = false
+material = SubResource("ShaderMaterial_jgkyn")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 1, 1, 0)
 
 [node name="GhostSlotsContainer" type="Node" parent="." unique_id=2119247690]
 

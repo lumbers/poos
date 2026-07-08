@@ -5,6 +5,7 @@ extends Node3D
 @onready var deck_3d = $Deck3D
 @onready var card_manager = $Camera3D/CardManager
 @onready var camera_3d: Camera3D = $Camera3D
+@onready var boss_vignette = $UI/BossVignette  # ColorRect covering full screen
 
 @onready var remove_target_button = $TacticalOverlay/Control/RemoveTargetButton
 
@@ -222,6 +223,11 @@ func update_hud_display():
 	if opponent_lp_label:
 		opponent_lp_label.text = "Enemy LP: " + str(opponent_lp)
 
+func show_boss_vignette(show: bool):
+	if boss_vignette:
+		var t = create_tween()
+		t.tween_property(boss_vignette, "modulate:a", 1.0 if show else 0.0, 0.5)
+
 func _on_deck_clicked():
 	# --- THE FIX: Block drawing during ANY special phase or attack! ---
 	if is_discard_phase or is_in_attack_phase or is_in_tactical_targeting: 
@@ -356,7 +362,6 @@ func try_place_pie_on_field(card_node: Node3D):
 
 		if is_boss:
 			# --- BOSS HOVER MODE ---
-			# Save the destination for later, then trigger the tribute UI while it hovers!
 			pending_boss_target_pos = target_global_position + Vector3(0, 0.02, 0)
 			
 			tween.chain().tween_callback(func():
@@ -364,6 +369,19 @@ func try_place_pie_on_field(card_node: Node3D):
 					card_node.get_node("Area3D").input_ray_pickable = true
 				if card_node.has_method("update_field_hp_display"):
 					card_node.update_field_hp_display()
+					
+				# --- IDLE BREATHING ANIMATION ---
+				var idle_tween = create_tween().set_loops()
+				idle_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+				idle_tween.tween_property(card_node, "global_position", camera_front_pos + Vector3(0, 0.04, 0), 1.5)
+				idle_tween.tween_property(card_node, "global_position", camera_front_pos - Vector3(0, 0.02, 0), 1.5)
+				card_node.set_meta("idle_tween", idle_tween) 
+				
+				# ---> NEW: TURN ON THE DARK AURA AND VIGNETTE! <---
+				if card_node.has_method("activate_boss_vfx"):
+					card_node.activate_boss_vfx()
+				show_boss_vignette(true)
+				
 				start_boss_tribute_phase(card_node)
 			)
 		else:
@@ -536,17 +554,40 @@ func _on_confirm_discard_pressed():
 		execute_paid_switch()
 	# --- NEW: ROAR ON SUCCESSFUL BOSS SUMMON ---
 	elif finished_mode == DiscardMode.BOSS_TRIBUTE:
-		
-		# ---> DEDUCT THE ACTION POINT HERE INSTEAD! <---
 		current_energy -= 1
-		update_hud_display() # (Removed the broken tracker variable from here too!)
+		update_hud_display() 
 		
 		if is_instance_valid(pending_boss_card):
-			if pending_boss_card.has_node("EntrySound"):
-				var roar = preload("res://sounds/thunda.mp3") 
-				pending_boss_card.get_node("EntrySound").stream = roar
-				pending_boss_card.get_node("EntrySound").play()
-			pending_boss_card = null
+			# 1. KILL THE BREATHING ANIMATION & VFX
+			if pending_boss_card.has_meta("idle_tween"):
+				var idle_tween = pending_boss_card.get_meta("idle_tween")
+				if is_instance_valid(idle_tween):
+					idle_tween.kill()
+					
+			# ---> NEW: TURN OFF EFFECTS <---
+			if pending_boss_card.has_method("deactivate_boss_vfx"):
+				pending_boss_card.deactivate_boss_vfx()
+			show_boss_vignette(false)
+					
+			# 2. SLAM ONTO THE BOARD
+			# (Keep your existing slam_tween code exactly as it is below here!)
+			var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+			var field_scale = Vector3(0.85, 0.85, 0.85)
+			
+			var slam_tween = create_tween().set_parallel(true)
+			slam_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			slam_tween.tween_property(pending_boss_card, "global_transform:basis", flat_basis, 0.22)
+			slam_tween.tween_property(pending_boss_card, "global_position", pending_boss_target_pos, 0.22)
+			slam_tween.tween_property(pending_boss_card, "scale", field_scale, 0.22)
+			
+			# 3. TRIGGER THE ROAR UPON IMPACT
+			slam_tween.chain().tween_callback(func():
+				if pending_boss_card.has_node("EntrySound"):
+					var roar = preload("res://sounds/lightning_strike.mp3") 
+					pending_boss_card.get_node("EntrySound").stream = roar
+					pending_boss_card.get_node("EntrySound").play()
+				pending_boss_card = null
+			)
 
 func activate_field_drop_zone(should_activate: bool):
 	if has_node("FieldDropZone/CollisionShape3D"):
@@ -799,7 +840,20 @@ func cancel_switching_discard():
 	
 	# --- NEW: RETURN BOSS TO HAND IF CANCELLED ---
 	if was_boss_mode and is_instance_valid(pending_boss_card):
+		
+		# --- KILL IDLE TWEEN & VFX ---
+		if pending_boss_card.has_meta("idle_tween"):
+			var idle_tween = pending_boss_card.get_meta("idle_tween")
+			if is_instance_valid(idle_tween):
+				idle_tween.kill()
+				
+		# ---> NEW: TURN OFF EFFECTS <---
+		if pending_boss_card.has_method("deactivate_boss_vfx"):
+			pending_boss_card.deactivate_boss_vfx()
+		show_boss_vignette(false)
+				
 		# 1. Un-assign it from the board logic
+		# (Keep the rest of your cancel code exactly as it is below here!)
 		if active_slot_card == pending_boss_card: 
 			active_slot_card = null
 		else:

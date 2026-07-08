@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://dx63hhl88b05p" path="res://card_3d.gd" id="1_m068u"]
 [ext_resource type="Resource" uid="uid://crcymb5btqxrm" path="res://cards/data/fireball.tres" id="2_lg4i1"]
 [ext_resource type="PackedScene" uid="uid://cxn8qgf21e143" path="res://pie_template.tscn" id="2_m068u"]
+[ext_resource type="Script" uid="uid://cbqkntv0nuuu4" path="res://boss_vfx.gd" id="5_83v2q"]
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_lg4i1"]
 viewport_path = NodePath("MeshInstance3D/SubViewport")
@@ -57,3 +58,12 @@ font_size = 25
 
 [node name="EntrySound" type="AudioStreamPlayer3D" parent="." unique_id=1141480175]
 volume_db = 10.0
+
+[node name="BossVFX" type="Node3D" parent="." unique_id=1970762001]
+script = ExtResource("5_83v2q")
+
+[node name="AuraParticles" type="GPUParticles3D" parent="BossVFX" unique_id=1168979867]
+
+[node name="EyeLight" type="OmniLight3D" parent="BossVFX" unique_id=939143390]
+
+[node name="EyeParticles" type="GPUParticles3D" parent="BossVFX" unique_id=2084661796]

@@ -6,6 +6,7 @@ extends Node3D
 @onready var preview_panel = get_node("/root/MainGame/CanvasLayer/CardPreviewPanel")
 
 @export var is_flying: bool = false
+@onready var boss_vfx = $BossVFX
 
 # --- NEW HP FLOATING TRACKER NODE ---
 @onready var hp_tracker = $HPTracker
@@ -39,6 +40,14 @@ func _ready():
 		
 	if hp_tracker:
 		hp_tracker.visible = false
+
+func activate_boss_vfx():
+	if boss_vfx:
+		boss_vfx.activate()
+
+func deactivate_boss_vfx():
+	if boss_vfx:
+		boss_vfx.deactivate()
 
 # --- NEW FUNCTION TO UPDATE AND DISPLAY HEALTH ---
 # --- UPDATE LIVE HP FUNCTION ---
