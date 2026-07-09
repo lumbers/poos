@@ -29,6 +29,15 @@ extends Node3D
 	$GhostSlotsContainer/GhostSlot3,
 ]
 
+# --- DOMAIN SYSTEM ---
+@onready var domain_slot_marker = $BoardSlots/DomainSlotMarker
+@onready var domain_clash_overlay = $UI/DomainClashOverlay
+@onready var clash_timer_label = $UI/DomainClashOverlay/Panel/Timer
+@onready var clash_result_label = $UI/DomainClashOverlay/ResultLabel
+@onready var clash_rock_button = $UI/DomainClashOverlay/Panel/HBoxContainer/RockButton
+@onready var clash_paper_button = $UI/DomainClashOverlay/Panel/HBoxContainer/PaperButton
+@onready var clash_scissors_button = $UI/DomainClashOverlay/Panel/HBoxContainer/ScissorsButton
+
 # --- BOARD SLOT ANCHORS ---
 @onready var active_slot_marker = $BoardSlots/ActiveSlot
 @onready var bench_markers = [
@@ -97,6 +106,12 @@ var is_in_tactical_targeting: bool = false
 var targets_allowed: int = 1
 var current_targets_selected: Array = []
 var pending_damage_amount: int = 0
+
+var current_domain_card: Node3D = null
+var domain_rounds_remaining: int = 0
+var round_counter: int = 0
+var pending_domain_card: Node3D = null  # the challenger waiting during clash
+var is_in_domain_clash: bool = false
 
 var lightning_vfx_scene = preload("res://lightning_effect.tscn")
 
@@ -205,6 +220,11 @@ func _ready():
 	if cancel_overlay_button and not cancel_overlay_button.pressed.is_connected(cancel_attack_phase):
 		cancel_overlay_button.pressed.connect(cancel_attack_phase)
 
+	domain_clash_overlay.visible = false
+	clash_rock_button.pressed.connect(func(): _on_clash_choice("rock"))
+	clash_paper_button.pressed.connect(func(): _on_clash_choice("paper"))
+	clash_scissors_button.pressed.connect(func(): _on_clash_choice("scissors"))
+
 func _on_tactical_confirm_pressed():
 	if is_in_tactical_targeting: execute_tactical_attack()
 	elif is_in_boss_tribute: finalize_boss_summon()
@@ -302,9 +322,17 @@ func try_place_pie_on_field(card_node: Node3D):
 	
 	# --- 1. NON-PIE CARDS FLOW ---
 	if not is_pie:
-		# Spells and items immediately clear for deployment directly to the graveyard!
-		target_global_position = discard_pile_marker.global_position
-		placement_successful = true
+		var card_type = card_node.card_info.card_type.to_lower()
+		if card_type == "domain":
+			# Costs 1 energy, handled separately
+			current_energy -= play_cost
+			try_place_domain(card_node)
+			card_manager.arrange_hand()
+			update_hud_display()
+			return
+		else:
+			target_global_position = discard_pile_marker.global_position
+			placement_successful = true
 		
 	# --- 2. PIE CARDS FLOW ---
 	else: # is_pie
@@ -421,29 +449,31 @@ func try_place_pie_on_field(card_node: Node3D):
 # --- REVISED END TURN BUTTON CLICKED ---
 # Find your _on_end_turn_pressed() function and update it to this:
 func _on_end_turn_pressed():
-	# --- NEW: TRIGGER PASSIVES BEFORE THE TURN ENDS ---
 	execute_end_of_turn_passives()
 	
-	# --- FIX 1: IMMEDIATELY CANCEL ANY SWITCHING/SELECTION ---
 	if current_discard_mode == DiscardMode.SWITCHING:
 		cancel_switching_discard()
 	clear_field_selection()
-	
-	# ... (Keep the rest of your hand-limit check code here) ...
 	
 	var hand_count = card_manager.get_child_count()
 	
 	if hand_count > max_hand_size:
 		print("Hand size exceeds limit! Entering Discard Phase.")
 		is_discard_phase = true
-		current_discard_mode = DiscardMode.HAND_LIMIT 
+		current_discard_mode = DiscardMode.HAND_LIMIT
 		marked_for_discard.clear()
 		if discard_overlay:
 			discard_overlay.visible = true
 		if confirm_discard_button:
 			confirm_discard_button.visible = true
-		update_discard_ui_counters() # Make sure to update the text!
+		update_discard_ui_counters()
 	else:
+		# Only advance the round and start new turn if no discard needed
+		round_counter += 1
+		if current_domain_card != null:
+			domain_rounds_remaining -= 1
+			if domain_rounds_remaining <= 0:
+				expire_domain()
 		start_new_turn()
 
 # --- NEW SELECTION CHECKER FOR CARD_3D CLICKS ---
@@ -1657,3 +1687,135 @@ func execute_end_of_turn_passives():
 				if sfx_player:
 					sfx_player.stream = preload("res://sounds/lightning_strike.mp3")
 					sfx_player.play()
+
+func try_place_domain(card_node: Node3D):
+	if current_domain_card == null:
+		# Slot empty, place directly
+		place_domain_on_field(card_node)
+	else:
+		# Slot occupied, start clash
+		pending_domain_card = card_node
+		start_domain_clash()
+
+func place_domain_on_field(card_node: Node3D):
+	current_domain_card = card_node
+	domain_rounds_remaining = card_node.card_info.domain_duration
+	
+	card_node.is_on_board = true
+	card_node.get_parent().remove_child(card_node)
+	add_child(card_node)
+	
+	var cam_forward = -camera_3d.global_transform.basis.z
+	var camera_front_pos = camera_3d.global_transform.origin + cam_forward * 1.3
+	var field_scale = Vector3(0.85, 0.85, 0.85)
+	var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+	
+	var tween = create_tween()
+	var fly = tween.parallel()
+	fly.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	fly.tween_property(card_node, "global_position", camera_front_pos, 0.1)
+	fly.tween_property(card_node, "global_transform:basis", camera_3d.global_transform.basis, 0.1)
+	tween.chain().tween_interval(0.05)
+	var slam = tween.chain().parallel()
+	slam.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	slam.tween_property(card_node, "global_position", domain_slot_marker.global_position + Vector3(0, 0.02, 0), 0.22)
+	slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
+	slam.tween_property(card_node, "scale", field_scale, 0.22)
+	
+	card_manager.arrange_hand()
+	update_hud_display()
+
+func expire_domain():
+	if current_domain_card == null:
+		return
+	# Fly it to the discard pile
+	var dead = current_domain_card
+	current_domain_card = null
+	domain_rounds_remaining = 0
+	discard_graveyard_pool.append(dead)
+	var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+	var tween = create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(dead, "global_position", discard_pile_marker.global_position, 0.35)
+	tween.tween_property(dead, "global_transform:basis", flat_basis, 0.35)
+	tween.chain().tween_callback(func():
+		update_graveyard_mouse_priorities()
+	)
+
+# --- DOMAIN CLASH ---
+func start_domain_clash():
+	is_in_domain_clash = true
+	domain_clash_overlay.visible = true
+	clash_result_label.visible = false
+	clash_rock_button.disabled = false
+	clash_paper_button.disabled = false
+	clash_scissors_button.disabled = false
+	_run_clash_countdown()
+
+func _run_clash_countdown():
+	clash_timer_label.text = "3"
+	await get_tree().create_timer(1.0).timeout
+	clash_timer_label.text = "2"
+	await get_tree().create_timer(1.0).timeout
+	clash_timer_label.text = "1"
+	await get_tree().create_timer(1.0).timeout
+	clash_timer_label.text = "GO!"
+
+func _on_clash_choice(player_choice: String):
+	if not is_in_domain_clash:
+		return
+	clash_rock_button.disabled = true
+	clash_paper_button.disabled = true
+	clash_scissors_button.disabled = true
+	
+	var choices = ["rock", "paper", "scissors"]
+	var ai_choice = choices.pick_random()
+	
+	var result = _evaluate_rps(player_choice, ai_choice)
+	clash_result_label.visible = true
+	
+	if result == "win":
+		clash_result_label.text = "You chose " + player_choice + ", AI chose " + ai_choice + "\nYou win! Your domain stays!"
+		await get_tree().create_timer(2.0).timeout
+		_finish_clash(true)
+	elif result == "lose":
+		clash_result_label.text = "You chose " + player_choice + ", AI chose " + ai_choice + "\nAI wins! Their domain stays!"
+		await get_tree().create_timer(2.0).timeout
+		_finish_clash(false)
+	else:
+		clash_result_label.text = "You chose " + player_choice + ", AI chose " + ai_choice + "\nTie! Go again!"
+		await get_tree().create_timer(1.5).timeout
+		# Reset for another round
+		clash_rock_button.disabled = false
+		clash_paper_button.disabled = false
+		clash_scissors_button.disabled = false
+		_run_clash_countdown()
+
+func _evaluate_rps(player: String, ai: String) -> String:
+	if player == ai:
+		return "tie"
+	if (player == "rock" and ai == "scissors") or \
+	   (player == "scissors" and ai == "paper") or \
+	   (player == "paper" and ai == "rock"):
+		return "win"
+	return "lose"
+
+func _finish_clash(player_won: bool):
+	is_in_domain_clash = false
+	domain_clash_overlay.visible = false
+	
+	if player_won:
+		# Remove existing domain, place the new challenger
+		expire_domain()
+		await get_tree().create_timer(0.4).timeout
+		place_domain_on_field(pending_domain_card)
+	else:
+		# AI wins, pending card goes to discard
+		discard_graveyard_pool.append(pending_domain_card)
+		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+		var tween = create_tween().set_parallel(true)
+		tween.tween_property(pending_domain_card, "global_position", discard_pile_marker.global_position, 0.3)
+		tween.tween_property(pending_domain_card, "global_transform:basis", flat_basis, 0.3)
+		tween.chain().tween_callback(func(): update_graveyard_mouse_priorities())
+	
+	pending_domain_card = null

@@ -4,7 +4,8 @@ extends Node3D
 @onready var entry_sound = $EntrySound
 @export var card_info: CardData
 @onready var preview_panel = get_node("/root/MainGame/CanvasLayer/CardPreviewPanel")
-
+@export_category("Domain Specific")
+@export var domain_duration: int = 3  # rounds it stays active
 @export var is_flying: bool = false
 @onready var boss_vfx = $BossVFX
 
@@ -336,8 +337,9 @@ func load_card_data():
 	if template == null: return
 	
 	# --- Fix #3: Update the Top-Left Card Type Label ---
-	if template.has_node("Label"):
-		template.get_node("Label").text = card_info.card_type
+	if template.has_node("TopLeftBanner/Label"):
+		template.get_node("TopLeftBanner/Label").text = card_info.card_type
+		template.get_node("TopLeftBanner/Label").visible = true
 		
 	# --- Fix #4: Hide text overlays for Full-Art cards (Unless overridden!) ---
 	var hide_text = (not card_info.is_half_art) and (not card_info.force_text_on_full_art)
@@ -345,7 +347,7 @@ func load_card_data():
 	if template.has_node("NameHP"): template.get_node("NameHP").visible = not hide_text
 	if template.has_node("LiveHPLabel"): template.get_node("LiveHPLabel").visible = not hide_text
 	if template.has_node("VBoxContainer"): template.get_node("VBoxContainer").visible = not hide_text
-	if template.has_node("Label"): template.get_node("Label").visible = not hide_text
+	if template.has_node("TopLeftBanner/Label"): template.get_node("TopLeftBanner/Label").visible = true
 	if template.has_node("Label3"): template.get_node("Label3").visible = not hide_text
 	
 	# --- Show the Boss Icon if this card is a Boss ---

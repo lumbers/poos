@@ -33,3 +33,6 @@ class_name CardData
 @export var move2_targets: int = 1 # <--- ADD THIS
 @export var move2_is_equippable: bool = false
 @export var move2_has_cooldown: bool = false
+
+@export_category("Domain Specific")
+@export var domain_duration: int = 3

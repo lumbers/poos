@@ -24,3 +24,9 @@ lifetime = 0.25
 fixed_fps = 100
 process_material = SubResource("ParticleProcessMaterial_a0tk4")
 draw_pass_1 = ExtResource("1_gm1vi")
+
+[node name="SpotLight3D" type="SpotLight3D" parent="." unique_id=1494887149]
+transform = Transform3D(1, 0, 0, 0, 0.0022514604, 0.9999975, 0, -0.9999975, 0.0022514604, 0, 3.6896992, 0)
+light_color = Color(0.78150463, 0.6179373, 3.85046e-07, 1)
+light_energy = 9.0
+spot_angle = 53.254932
