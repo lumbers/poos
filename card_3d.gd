@@ -17,8 +17,13 @@ var is_on_board: bool = false
 var default_position: Vector3
 var is_hovered: bool = false
 
+# Status Trackers
+var can_attack: bool = true
+var can_switch: bool = true
+
 # Track the actual dynamic current health of this specific card instance
 var current_hp: int = 0
+var current_damage_buff: int = 0
 
 func _ready():
 	main_game = get_node_or_null("/root/MainGame")

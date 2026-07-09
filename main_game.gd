@@ -61,6 +61,7 @@ extends Node3D
 var selected_field_pie: Node3D = null
 var target_field_pie: Node3D = null
 var target_ghost_slot: Node3D = null
+var player_can_draw: bool = true
 
 # --- NEW DISCARD PHASE UI HOOKUPS ---
 @onready var discard_overlay = $UI/DiscardOverlay
@@ -233,6 +234,9 @@ func show_boss_vignette(show: bool):
 		t.tween_callback(func(): boss_vignette.visible = false)
 		
 func _on_deck_clicked():
+	if not player_can_draw:
+		spawn_floating_error_text("You are locked from drawing cards!", get_viewport().get_mouse_position())
+		return
 	# --- THE FIX: Block drawing during ANY special phase or attack! ---
 	if is_discard_phase or is_in_attack_phase or is_in_tactical_targeting: 
 		return 
@@ -641,6 +645,18 @@ func start_new_turn():
 	# 3. Refresh HUD UI display counters
 	update_hud_display()
 	
+	# --- RESET STATUS LOCKS ---
+	player_can_draw = true
+	
+	var all_my_pies = []
+	if active_slot_card != null: all_my_pies.append(active_slot_card)
+	for p in bench_slot_cards: 
+		if p != null: all_my_pies.append(p)
+		
+	for pie in all_my_pies:
+		pie.can_attack = true
+		pie.can_switch = true
+	
 	# ==========================================================
 # 💀 BATTLEFIELD PIE DEATH REAPER LOGIC
 # ==========================================================
@@ -799,6 +815,11 @@ func set_ghost_slots_visible(should_show: bool, is_pie: bool):
 		current_hovered_ghost_slot = null
 
 func initiate_paid_switch():
+	# Check for Status Locks!
+	if active_slot_card != null and not active_slot_card.can_switch:
+		spawn_floating_error_text("This Pie is trapped and cannot switch!", $UI/SwitchButton.global_position)
+		return
+	
 	if current_energy < 1:
 		print("Not enough energy to switch!")
 		# Trigger the spammable floating text right over the Switch button!
@@ -1230,6 +1251,12 @@ func execute_move(move_num: int):
 		cancel_attack_phase()
 		return
 		
+	# Check for Status Locks!
+	if not active_slot_card.can_attack:
+		spawn_floating_error_text("This Pie is locked from attacking!", get_viewport().get_mouse_position())
+		cancel_attack_phase()
+		return
+		
 	var card_data = active_slot_card.card_info
 	var dmg_string = card_data.move1_dmg if move_num == 1 else card_data.move2_dmg
 	
@@ -1239,7 +1266,9 @@ func execute_move(move_num: int):
 		is_healing = true
 		dmg_string = dmg_string.replace("±", "") # Strip the symbol so math works!
 		
-	pending_damage_amount = dmg_string.to_int() 
+	# Add the Pie's dynamic buff to the base damage!
+	pending_damage_amount = dmg_string.to_int() + active_slot_card.current_damage_buff
+	
 	targets_allowed = card_data.move1_targets if move_num == 1 else card_data.move2_targets
 	
 	attack_overlay.visible = false
