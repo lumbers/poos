@@ -224,10 +224,14 @@ func update_hud_display():
 		opponent_lp_label.text = "Enemy LP: " + str(opponent_lp)
 
 func show_boss_vignette(show: bool):
-	if boss_vignette:
-		var t = create_tween()
-		t.tween_property(boss_vignette, "modulate:a", 1.0 if show else 0.0, 0.5)
-
+	if not boss_vignette:
+		return
+	boss_vignette.visible = true
+	var t = create_tween()
+	t.tween_property(boss_vignette, "modulate:a", 1.0 if show else 0.0, 0.6)
+	if not show:
+		t.tween_callback(func(): boss_vignette.visible = false)
+		
 func _on_deck_clicked():
 	# --- THE FIX: Block drawing during ANY special phase or attack! ---
 	if is_discard_phase or is_in_attack_phase or is_in_tactical_targeting: 
@@ -1496,6 +1500,10 @@ func start_boss_tribute_phase(boss_card: Node3D):
 	if cancel_button: cancel_button.visible = true 
 	
 	update_discard_ui_counters()
+	# Activate boss VFX while player discards tributes
+	if is_instance_valid(pending_boss_card) and pending_boss_card.has_method("activate_boss_vfx"):
+		pending_boss_card.activate_boss_vfx()
+	show_boss_vignette(true)
 
 func add_tribute_target(hand_card: Node3D):
 	if current_tributes_selected.size() >= 3: return
@@ -1533,6 +1541,11 @@ func finalize_boss_summon():
 	spawned_reticles.clear()
 	current_tributes_selected.clear()
 
+	# Kill the boss VFX now that it's landing
+	if is_instance_valid(pending_boss_card) and pending_boss_card.has_method("deactivate_boss_vfx"):
+		pending_boss_card.deactivate_boss_vfx()
+	show_boss_vignette(false)
+
 	# 3. NOW slam the Boss onto the board!
 	if is_instance_valid(pending_boss_card):
 		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
@@ -1559,6 +1572,10 @@ func finalize_boss_summon():
 func cancel_boss_summon():
 	$TacticalOverlay.visible = false
 	is_in_boss_tribute = false
+
+	if is_instance_valid(pending_boss_card) and pending_boss_card.has_method("deactivate_boss_vfx"):
+		pending_boss_card.deactivate_boss_vfx()
+	show_boss_vignette(false)
 
 	for r in spawned_reticles:
 		if is_instance_valid(r): r.queue_free()

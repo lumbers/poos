@@ -60,6 +60,7 @@ font_size = 25
 volume_db = 10.0
 
 [node name="BossVFX" type="Node3D" parent="." unique_id=1970762001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.005888939, -0.4959787)
 script = ExtResource("5_83v2q")
 
 [node name="AuraParticles" type="GPUParticles3D" parent="BossVFX" unique_id=1168979867]
