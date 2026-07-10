@@ -628,6 +628,14 @@ light_indirect_energy = 3.9
 light_size = 1.0
 spot_angle = 71.73
 
+[node name="SpotLight3D2" type="SpotLight3D" parent="." unique_id=1980494322]
+transform = Transform3D(1, 0, 0, 0, -0.001378818, 0.99999905, 0, -0.99999905, -0.001378818, 2.071175, 1.4494059, 0.8375529)
+light_color = Color(0.0614345, 0.241876, 0.32207784, 1)
+light_energy = 3.568
+light_indirect_energy = 3.9
+light_size = 1.0
+spot_angle = 31.243889
+
 [node name="DomainSFXPlayer" type="AudioStreamPlayer" parent="." unique_id=1535808232]
 
 [node name="DomainBGMPlayer" type="AudioStreamPlayer" parent="." unique_id=1299975493]
