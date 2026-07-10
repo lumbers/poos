@@ -452,15 +452,23 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="RockButton" type="Button" parent="UI/DomainClashOverlay/Panel/HBoxContainer" unique_id=481016124]
+custom_minimum_size = Vector2(334, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 60
 text = "rock"
 
 [node name="ScissorsButton" type="Button" parent="UI/DomainClashOverlay/Panel/HBoxContainer" unique_id=2070873021]
+custom_minimum_size = Vector2(334, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 60
 text = "scissors"
 
 [node name="PaperButton" type="Button" parent="UI/DomainClashOverlay/Panel/HBoxContainer" unique_id=568640078]
+custom_minimum_size = Vector2(334, 0)
 layout_mode = 2
+theme_override_colors/icon_normal_color = Color(0.6148591, 0.08984599, 0.24483663, 1)
+theme_override_colors/icon_hover_color = Color(0.22380823, 0.5173046, 0.31728315, 1)
+theme_override_font_sizes/font_size = 60
 text = "paper"
 
 [node name="ResultLabel" type="Label" parent="UI/DomainClashOverlay" unique_id=2071961719]
@@ -629,9 +637,9 @@ light_size = 1.0
 spot_angle = 71.73
 
 [node name="SpotLight3D2" type="SpotLight3D" parent="." unique_id=1980494322]
-transform = Transform3D(1, 0, 0, 0, -0.001378818, 0.99999905, 0, -0.99999905, -0.001378818, 2.071175, 1.4494059, 0.8375529)
+transform = Transform3D(1, 0, 0, 0, -0.001378818, 0.99999905, 0, -0.99999905, -0.001378818, 2.071175, 1.0707412, 0.8375529)
 light_color = Color(0.0614345, 0.241876, 0.32207784, 1)
-light_energy = 3.568
+light_energy = 11.726
 light_indirect_energy = 3.9
 light_size = 1.0
 spot_angle = 31.243889
