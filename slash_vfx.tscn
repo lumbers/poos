@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://crff08erwhwfv"]
+
+[ext_resource type="Script" uid="uid://do37hvv2yqrsa" path="res://slash_vfx.gd" id="1_wu2ok"]
+
+[node name="slash_vfx" type="Node3D" unique_id=27205900]
+script = ExtResource("1_wu2ok")
+
+[node name="GPUParticles3D" type="GPUParticles3D" parent="." unique_id=1727431186]

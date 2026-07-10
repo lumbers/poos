@@ -37,3 +37,7 @@ class_name CardData
 @export_category("Domain Specific")
 @export var domain_duration: int = 3
 @export var domain_environment: Environment  # drag your .tres env file here
+@export var domain_model: PackedScene  # drag the imported .glb here
+@export var domain_intro_sound: AudioStream   # ryoiki tenkai sfx
+@export var domain_bgm: AudioStream           # looping background music
+@export var domain_has_slash_vfx: bool = false

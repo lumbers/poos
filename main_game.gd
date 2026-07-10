@@ -12,7 +12,8 @@ extends Node3D
 @onready var switch_button = $UI/SwitchButton
 @onready var free_move_up_button = $UI/FreeMoveUpButton
 @onready var cancel_button = $UI/CancelButton
-
+@onready var domain_sfx_player = $DomainSFXPlayer
+@onready var domain_bgm_player = $DomainBGMPlayer
 @onready var sfx_player = $SFXPlayer
 
 # Change this line:
@@ -1726,8 +1727,13 @@ func place_domain_on_field(card_node: Node3D):
 	slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
 	slam.tween_property(card_node, "scale", field_scale, 0.22)
 	
-	tween.chain().tween_callback(func(): 
-		apply_domain_environment(card_node))
+	tween.chain().tween_callback(func():
+		apply_domain_environment(card_node)
+		spawn_domain_model(card_node)
+		play_domain_audio(card_node)
+		if card_node.card_info.domain_has_slash_vfx:
+			start_slash_vfx()
+	)
 	
 	card_manager.arrange_hand()
 	update_hud_display()
@@ -1749,6 +1755,9 @@ func expire_domain():
 		update_graveyard_mouse_priorities()
 	)
 	restore_default_environment()
+	despawn_domain_model()
+	stop_domain_audio()
+	stop_slash_vfx()
 
 # --- DOMAIN CLASH ---
 func start_domain_clash():
@@ -1837,3 +1846,83 @@ func apply_domain_environment(domain_card: Node3D):
 func restore_default_environment():
 	if default_environment != null:
 		world_environment.environment = default_environment
+
+@onready var domain_model_anchor = $BoardSlots/DomainModelAnchor
+var spawned_domain_model: Node3D = null
+
+func spawn_domain_model(domain_card: Node3D):
+	if domain_card.card_info.domain_model == null:
+		return
+	spawned_domain_model = domain_card.card_info.domain_model.instantiate()
+	domain_model_anchor.add_child(spawned_domain_model)
+	# Start small and scale up for a dramatic entrance
+	spawned_domain_model.scale = Vector3.ZERO
+	var t = create_tween()
+	t.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(spawned_domain_model, "scale", Vector3(0.5, 0.5, 0.5), 1.2)
+
+func despawn_domain_model():
+	if is_instance_valid(spawned_domain_model):
+		var t = create_tween()
+		t.tween_property(spawned_domain_model, "scale", Vector3.ZERO, 0.4)
+		t.tween_callback(func(): spawned_domain_model.queue_free())
+	spawned_domain_model = null
+	
+func play_domain_audio(domain_card: Node3D): 
+	var info = domain_card.card_info
+	
+	# Play intro sound immediately
+	if info.domain_intro_sound:
+		domain_sfx_player.stream = info.domain_intro_sound
+		domain_sfx_player.play()
+	
+	# Start BGM after a short delay so intro plays first
+	if info.domain_bgm:
+		domain_bgm_player.stream = info.domain_bgm
+		domain_bgm_player.volume_db = -80.0  # start silent
+		# Delay BGM start slightly
+		await get_tree().create_timer(1.5).timeout
+		domain_bgm_player.play()
+		# Fade BGM in
+		var t = create_tween()
+		t.tween_property(domain_bgm_player, "volume_db", -10.0, 2.0)
+
+func stop_domain_audio():
+	# Fade out BGM
+	var t = create_tween()
+	t.tween_property(domain_bgm_player, "volume_db", -80.0, 1.0)
+	t.tween_callback(func(): domain_bgm_player.stop())
+	domain_sfx_player.stop()
+
+var slash_vfx_scene = preload("res://slash_vfx.tscn")
+var domain_slash_timer: Timer = null
+
+func start_slash_vfx():
+	if domain_slash_timer:
+		domain_slash_timer.queue_free()
+	domain_slash_timer = Timer.new()
+	add_child(domain_slash_timer)
+	domain_slash_timer.wait_time = randf_range(1.5, 3.0)
+	domain_slash_timer.timeout.connect(_spawn_slash)
+	domain_slash_timer.start()
+
+func _spawn_slash():
+	var slash = slash_vfx_scene.instantiate()
+	add_child(slash)
+	# Position in the background behind the field
+	slash.global_position = Vector3(randf_range(-2.0, 2.0), randf_range(0.5, 2.0), -1.0)
+	slash.emitting = true
+	# Clean it up after it finishes
+	await get_tree().create_timer(1.5).timeout
+	if is_instance_valid(slash):
+		slash.queue_free()
+	# Randomize next slash timing
+	if domain_slash_timer:
+		domain_slash_timer.wait_time = randf_range(1.0, 2.5)
+		domain_slash_timer.start()
+
+func stop_slash_vfx():
+	if is_instance_valid(domain_slash_timer):
+		domain_slash_timer.stop()
+		domain_slash_timer.queue_free()
+	domain_slash_timer = null
