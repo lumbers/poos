@@ -36,3 +36,4 @@ class_name CardData
 
 @export_category("Domain Specific")
 @export var domain_duration: int = 3
+@export var domain_environment: Environment  # drag your .tres env file here

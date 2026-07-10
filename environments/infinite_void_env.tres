@@ -1,0 +1,7 @@
+[gd_resource type="Environment" format=3 uid="uid://ci3v26401uixj"]
+
+[resource]
+background_mode = 2
+ambient_light_source = 2
+ambient_light_color = Color(0.15170373, 0.24780053, 0.3491902, 1)
+ambient_light_energy = 0.3

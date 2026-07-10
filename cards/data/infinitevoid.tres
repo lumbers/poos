@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://dajv4lrkf8po1" path="res://cards/art/infinite void.png" id="1_5p3rc"]
 [ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="2_dpqx8"]
+[ext_resource type="Environment" uid="uid://ci3v26401uixj" path="res://environments/infinite_void_env.tres" id="2_ovrlm"]
 
 [resource]
 script = ExtResource("2_dpqx8")
@@ -9,4 +10,5 @@ card_name = "Infinite Void"
 card_type = "Domain"
 card_art = ExtResource("1_5p3rc")
 use_full_paper_image = true
+domain_environment = ExtResource("2_ovrlm")
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"
