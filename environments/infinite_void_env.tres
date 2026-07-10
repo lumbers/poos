@@ -1,7 +1,16 @@
 [gd_resource type="Environment" format=3 uid="uid://ci3v26401uixj"]
 
+[ext_resource type="Texture2D" uid="uid://cfm8mqdwashfa" path="res://cards/art/infintiyvoiding.jpg" id="1_3jg8c"]
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_uovvc"]
+panorama = ExtResource("1_3jg8c")
+
+[sub_resource type="Sky" id="Sky_etji2"]
+sky_material = SubResource("PanoramaSkyMaterial_uovvc")
+
 [resource]
 background_mode = 2
+sky = SubResource("Sky_etji2")
 ambient_light_source = 2
 ambient_light_color = Color(0.15170373, 0.24780053, 0.3491902, 1)
 ambient_light_energy = 0.3

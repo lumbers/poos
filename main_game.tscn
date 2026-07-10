@@ -41,7 +41,7 @@ bg_color = Color(0.89411765, 0.89411765, 0.89411765, 0.5137255)
 
 [node name="MainGame" type="Node3D" unique_id=1627973838]
 script = ExtResource("1_l5ukw")
-card_pool = Array[ExtResource("2_mf81u")]([ExtResource("3_02kkc"), ExtResource("6_f52ns"), ExtResource("5_2pltu"), ExtResource("4_6bm6p")])
+card_pool = Array[ExtResource("2_mf81u")]([ExtResource("3_02kkc"), ExtResource("6_f52ns"), ExtResource("5_2pltu"), ExtResource("4_6bm6p"), ExtResource("10_jgkyn"), ExtResource("10_aomqu")])
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1723110735]
 environment = SubResource("Environment_krmtw")

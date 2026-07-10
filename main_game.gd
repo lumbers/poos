@@ -81,6 +81,9 @@ var player_can_draw: bool = true
 @onready var move2_button = $AttackOverlay/Control/VBoxContainer/Move2Button
 @onready var cancel_overlay_button = $AttackOverlay/Control/CancelOverlayButton
 
+@onready var world_environment: WorldEnvironment = $WorldEnvironment
+var default_environment: Environment  # saved at game start
+
 var original_camera_pos: Vector3
 var original_camera_rot: Vector3
 var is_in_attack_phase: bool = false
@@ -151,6 +154,7 @@ var is_rearranging_field: bool = false
 var is_free_move_active: bool = false
 
 func _ready():
+	default_environment = world_environment.environment.duplicate()
 	# Add these near the top of _ready()
 	original_camera_pos = camera_3d.global_position
 	original_camera_rot = camera_3d.rotation
@@ -1722,6 +1726,9 @@ func place_domain_on_field(card_node: Node3D):
 	slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
 	slam.tween_property(card_node, "scale", field_scale, 0.22)
 	
+	tween.chain().tween_callback(func(): 
+		apply_domain_environment(card_node))
+	
 	card_manager.arrange_hand()
 	update_hud_display()
 
@@ -1741,6 +1748,7 @@ func expire_domain():
 	tween.chain().tween_callback(func():
 		update_graveyard_mouse_priorities()
 	)
+	restore_default_environment()
 
 # --- DOMAIN CLASH ---
 func start_domain_clash():
@@ -1809,6 +1817,7 @@ func _finish_clash(player_won: bool):
 		expire_domain()
 		await get_tree().create_timer(0.4).timeout
 		place_domain_on_field(pending_domain_card)
+		restore_default_environment()
 	else:
 		# AI wins, pending card goes to discard
 		discard_graveyard_pool.append(pending_domain_card)
@@ -1819,3 +1828,12 @@ func _finish_clash(player_won: bool):
 		tween.chain().tween_callback(func(): update_graveyard_mouse_priorities())
 	
 	pending_domain_card = null
+
+func apply_domain_environment(domain_card: Node3D):
+	if domain_card.card_info.domain_environment != null:
+	   # Smoothly transition — Godot environments blend automatically
+		world_environment.environment = domain_card.card_info.domain_environment
+
+func restore_default_environment():
+	if default_environment != null:
+		world_environment.environment = default_environment
