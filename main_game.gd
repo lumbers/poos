@@ -39,6 +39,10 @@ extends Node3D
 @onready var clash_paper_button = $UI/DomainClashOverlay/Panel/HBoxContainer/PaperButton
 @onready var clash_scissors_button = $UI/DomainClashOverlay/Panel/HBoxContainer/ScissorsButton
 
+# --- CONSTRUCT SYSTEM ---
+@onready var construct_slot_marker = $BoardSlots/ConstructSlotMarker
+var current_construct_card: Node3D = null
+
 # --- BOARD SLOT ANCHORS ---
 @onready var active_slot_marker = $BoardSlots/ActiveSlot
 @onready var bench_markers = [
@@ -88,7 +92,7 @@ var default_environment: Environment  # saved at game start
 var original_camera_pos: Vector3
 var original_camera_rot: Vector3
 var is_in_attack_phase: bool = false
-
+var clash_waiting_for_input: bool = false
 var pending_boss_target_pos: Vector3 = Vector3.ZERO
 
 var is_in_boss_tribute: bool = false
@@ -332,6 +336,13 @@ func try_place_pie_on_field(card_node: Node3D):
 			# Costs 1 energy, handled separately
 			current_energy -= play_cost
 			try_place_domain(card_node)
+			card_manager.arrange_hand()
+			update_hud_display()
+			return
+		elif card_type == "construct":
+			# Costs 1 energy, handled separately
+			current_energy -= play_cost
+			try_place_construct(card_node)
 			card_manager.arrange_hand()
 			update_hud_display()
 			return
@@ -652,31 +663,39 @@ func start_new_turn():
 	if opponent_active_card == null:
 		spawn_dummy_opponent()
 	
-	# --- 3. THE FREE DRAW (Keep your existing draw code here!) ---
-	if card_pool.is_empty():
-		return
-	
-	var random_data = card_pool.pick_random()
-	var new_card = card_manager.card_scene.instantiate()
-	new_card.card_info = random_data
-	
-	if new_card.has_node("Area3D"):
-		new_card.get_node("Area3D").input_ray_pickable = false
-	
-	add_child(new_card)
-	new_card.global_position = deck_3d.global_position + Vector3(0, 0.2, 0)
-	new_card.global_rotation = Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0)
-	
-	var fly_past_target = deck_3d.global_position + Vector3(0, 0.2, 2.5)
-	var fly_tween = create_tween().set_parallel(true)
-	fly_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	
-	fly_tween.tween_property(new_card, "global_position", fly_past_target, 0.1)
-	fly_tween.tween_property(new_card, "global_rotation", Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0), 0.3)
-	
-	# Clean, modern lambda format:
-	fly_tween.chain().tween_callback(func(): _add_to_hand_seamlessly(new_card))
-
+	# --- 3. THE FREE DRAW (Upgraded for Construct Buffs) ---
+	var loops_to_draw = 1
+	if current_construct_card != null and current_construct_card.card_info.card_name.to_lower() == "slave":
+		loops_to_draw = 2
+		print("Slave Construct active! Drawing an extra card.")
+		
+	for d in range(loops_to_draw):
+		if card_pool.is_empty():
+			break
+			
+		# Delay subsequent card draws slightly so animations don't overlap awkwardly
+		if d > 0:
+			await get_tree().create_timer(0.4).timeout
+			
+		var random_data = card_pool.pick_random()
+		var new_card = card_manager.card_scene.instantiate()
+		new_card.card_info = random_data
+		
+		if new_card.has_node("Area3D"):
+			new_card.get_node("Area3D").input_ray_pickable = false
+		
+		add_child(new_card)
+		new_card.global_position = deck_3d.global_position + Vector3(0, 0.2, 0)
+		new_card.global_rotation = Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0)
+		
+		var fly_past_target = deck_3d.global_position + Vector3(0, 0.2, 2.5)
+		var fly_tween = create_tween().set_parallel(true)
+		fly_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		
+		fly_tween.tween_property(new_card, "global_position", fly_past_target, 0.1)
+		fly_tween.tween_property(new_card, "global_rotation", Vector3(deg_to_rad(90), deck_3d.global_rotation.y, 0), 0.3)
+		
+		fly_tween.chain().tween_callback(func(): _add_to_hand_seamlessly(new_card))
 	# 3. Refresh HUD UI display counters
 	update_hud_display()
 	
@@ -696,6 +715,39 @@ func start_new_turn():
 # 💀 BATTLEFIELD PIE DEATH REAPER LOGIC
 # ==========================================================
 func handle_pie_death(card_node: Node3D):
+	# --- NEW CONSTRUCT INTERCEPTOR ---
+	# This must be at the VERY TOP so it triggers and exits before any LP is deducted!
+	if card_node.card_info and card_node.card_info.card_type.to_lower() == "construct":
+		print("Construct has been shattered: ", card_node.card_info.card_name)
+		if card_node.has_node("HPTracker"):
+			card_node.get_node("HPTracker").visible = false
+			
+		if current_construct_card == card_node:
+			current_construct_card = null
+			
+		discard_graveyard_pool.append(card_node)
+		
+		# Used slightly different variable names here to avoid Godot shadow errors
+		var construct_dest = discard_pile_marker.global_position
+		var construct_flat = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+		var construct_scale = Vector3(0.85, 0.85, 0.85)
+		
+		var construct_tween = create_tween().set_parallel(true)
+		construct_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		construct_tween.tween_property(card_node, "global_position", construct_dest, 0.35)
+		construct_tween.tween_property(card_node, "global_transform:basis", construct_flat, 0.35)
+		construct_tween.tween_property(card_node, "scale", construct_scale, 0.35)
+		
+		construct_tween.chain().tween_callback(func():
+			update_graveyard_mouse_priorities()
+			if card_node.has_node("Area3D"):
+				card_node.get_node("Area3D").input_ray_pickable = true
+		)
+		return # EXIT IMMEDIATELY! Prevents the code below from running and taking your LP.
+
+	# ==========================================
+	# --- NORMAL PIE LOGIC (Only runs if it is NOT a construct) ---
+	# ==========================================
 	print("Pie has fainted! Sweeping: ", card_node.card_info.card_name)
 	
 	# FIX: Instantly hide the HP tracker so a "0" doesn't float into the graveyard
@@ -746,7 +798,7 @@ func handle_pie_death(card_node: Node3D):
 		if card_node.has_node("Area3D"):
 			card_node.get_node("Area3D").input_ray_pickable = true
 	)
-	
+
 # --- CHANGE THIS FUNCTION NAME TO _input ---
 func _input(event: InputEvent):
 	# Test Damage: Pressing "ENTER" will hit your Active Pie for 20 damage!
@@ -1776,17 +1828,28 @@ func start_domain_clash():
 	_run_clash_countdown()
 
 func _run_clash_countdown():
-	clash_timer_label.text = "3"
-	await get_tree().create_timer(1.0).timeout
-	clash_timer_label.text = "2"
-	await get_tree().create_timer(1.0).timeout
-	clash_timer_label.text = "1"
-	await get_tree().create_timer(1.0).timeout
-	clash_timer_label.text = "GO!"
+	clash_waiting_for_input = true
+	var time_left = 5
+	
+	# Loop until time runs out or the player makes a choice
+	while time_left > 0 and clash_waiting_for_input and is_in_domain_clash:
+		clash_timer_label.text = str(time_left)
+		await get_tree().create_timer(1.0).timeout
+		time_left -= 1
+		
+	# If the timer expired and input hasn't changed, auto-lock rock
+	if clash_waiting_for_input and is_in_domain_clash:
+		clash_timer_label.text = "Time's Up!"
+		await get_tree().create_timer(0.5).timeout
+		_on_clash_choice("rock")
 
 func _on_clash_choice(player_choice: String):
 	if not is_in_domain_clash:
 		return
+		
+	# Instantly toggle this off to intercept and break out of the countdown timer loop
+	clash_waiting_for_input = false
+	
 	clash_rock_button.disabled = true
 	clash_paper_button.disabled = true
 	clash_scissors_button.disabled = true
@@ -1826,6 +1889,7 @@ func _evaluate_rps(player: String, ai: String) -> String:
 func _finish_clash(player_won: bool):
 	is_in_domain_clash = false
 	domain_clash_overlay.visible = false
+	clash_waiting_for_input = false
 	
 	if player_won:
 		# Remove existing domain, place the new challenger
@@ -1835,12 +1899,33 @@ func _finish_clash(player_won: bool):
 		restore_default_environment()
 	else:
 		# AI wins, pending card goes to discard
-		discard_graveyard_pool.append(pending_domain_card)
-		var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
-		var tween = create_tween().set_parallel(true)
-		tween.tween_property(pending_domain_card, "global_position", discard_pile_marker.global_position, 0.3)
-		tween.tween_property(pending_domain_card, "global_transform:basis", flat_basis, 0.3)
-		tween.chain().tween_callback(func(): update_graveyard_mouse_priorities())
+		if is_instance_valid(pending_domain_card):
+			# 1. Flag it as on-board/dead to disable hand interaction scripts
+			pending_domain_card.is_on_board = true
+			
+			# 2. Rip it out of the hand manager and add it to the global game scene
+			if pending_domain_card.get_parent():
+				pending_domain_card.get_parent().remove_child(pending_domain_card)
+			add_child(pending_domain_card)
+			
+			discard_graveyard_pool.append(pending_domain_card)
+			
+			# 3. Apply the clean, flat layout rotation used by other fainted cards
+			var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+			var target_pile_scale = Vector3(0.85, 0.85, 0.85)
+			
+			var tween = create_tween().set_parallel(true)
+			tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			tween.tween_property(pending_domain_card, "global_position", discard_pile_marker.global_position, 0.35)
+			tween.tween_property(pending_domain_card, "global_transform:basis", flat_basis, 0.35)
+			tween.tween_property(pending_domain_card, "scale", target_pile_scale, 0.35)
+			
+			# 4. Refresh mouse collision priorities and snap remaining hand cards together
+			tween.chain().tween_callback(func(): 
+				update_graveyard_mouse_priorities()
+				if card_manager:
+					card_manager.arrange_hand()
+			)
 	
 	pending_domain_card = null
 
@@ -1869,10 +1954,16 @@ func spawn_domain_model(domain_card: Node3D):
 
 func despawn_domain_model():
 	if is_instance_valid(spawned_domain_model):
+		# Create a local copy that won't turn null on the next line
+		var model_to_free = spawned_domain_model
+		spawned_domain_model = null # Safely reset the main tracker immediately
+		
 		var t = create_tween()
-		t.tween_property(spawned_domain_model, "scale", Vector3.ZERO, 0.4)
-		t.tween_callback(func(): spawned_domain_model.queue_free())
-	spawned_domain_model = null
+		t.tween_property(model_to_free, "scale", Vector3.ZERO, 0.4)
+		t.tween_callback(func(): 
+			if is_instance_valid(model_to_free):
+				model_to_free.queue_free()
+		)
 	
 func play_domain_audio(domain_card: Node3D): 
 	var info = domain_card.card_info
@@ -1908,7 +1999,8 @@ func start_slash_vfx():
 		domain_slash_timer.queue_free()
 	domain_slash_timer = Timer.new()
 	add_child(domain_slash_timer)
-	domain_slash_timer.wait_time = randf_range(1.5, 3.0)
+	# START DELAY: Rapid first trigger (0.1 to 0.3 seconds)
+	domain_slash_timer.wait_time = randf_range(0.1, 0.3)
 	domain_slash_timer.timeout.connect(_spawn_slash)
 	domain_slash_timer.start()
 
@@ -1917,18 +2009,19 @@ func _spawn_slash():
 		return
 	var slash = slash_vfx_scene.instantiate()
 	add_child(slash)
-	
-	# Shift the Z coordinate further back (-8.0) so they happen completely behind the game table layer!
-	slash.global_position = Vector3(randf_range(-4.0, 4.0), randf_range(1.0, 4.0), -8.0)
-	
+	#slash.global_position = Vector3(randf_range(-4.0, 4.0), randf_range(1.0, 4.0), -8.0)
 	slash.one_shot = true
 	slash.emitting = true
-	# ... rest of your script ...
-	await get_tree().create_timer(1.5).timeout
-	if is_instance_valid(slash):
-		slash.queue_free()
+	
+	# Clean up the particle node quickly since its lifetime is short (0.4s)
+	get_tree().create_timer(0.6).timeout.connect(func():
+		if is_instance_valid(slash):
+			slash.queue_free()
+	)
+	
+	# LOOP DELAY: Set the next slash to fire almost instantly (0.05 to 0.2 seconds)
 	if domain_slash_timer and is_instance_valid(domain_slash_timer):
-		domain_slash_timer.wait_time = randf_range(1.0, 2.5)
+		domain_slash_timer.wait_time = randf_range(0.05, 0.2)
 		domain_slash_timer.start()
 
 func stop_slash_vfx():
@@ -1936,3 +2029,66 @@ func stop_slash_vfx():
 		domain_slash_timer.stop()
 		domain_slash_timer.queue_free()
 	domain_slash_timer = null
+
+func try_place_construct(card_node: Node3D):
+	if current_construct_card != null:
+		# If a construct already occupies the slot, replace it safely
+		expire_construct()
+		await get_tree().create_timer(0.4).timeout
+	place_construct_on_field(card_node)
+
+func place_construct_on_field(card_node: Node3D):
+	current_construct_card = card_node
+	
+	card_node.is_on_board = true
+	card_node.get_parent().remove_child(card_node)
+	add_child(card_node)
+	
+	var cam_forward = -camera_3d.global_transform.basis.z
+	var camera_front_pos = camera_3d.global_transform.origin + cam_forward * 1.3
+	var field_scale = Vector3(0.85, 0.85, 0.85)
+	var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+	
+	var tween = create_tween()
+	var fly = tween.parallel()
+	fly.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	fly.tween_property(card_node, "global_position", camera_front_pos, 0.1)
+	fly.tween_property(card_node, "global_transform:basis", camera_3d.global_transform.basis, 0.1)
+	
+	tween.chain().tween_interval(0.05)
+	
+	var slam = tween.chain().parallel()
+	slam.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	slam.tween_property(card_node, "global_position", construct_slot_marker.global_position + Vector3(0, 0.02, 0), 0.22)
+	slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
+	slam.tween_property(card_node, "scale", field_scale, 0.22)
+	
+	# Hides the pink mat dropzone visual since placement is complete
+	if is_instance_valid(field_drop_mesh):
+		field_drop_mesh.visible = false
+		
+	tween.chain().tween_callback(func():
+		if card_node.has_node("Area3D"):
+			card_node.get_node("Area3D").input_ray_pickable = true
+		if card_node.has_method("update_field_hp_display"):
+			card_node.update_field_hp_display()
+	)
+
+func expire_construct():
+	if current_construct_card == null:
+		return
+	var dead = current_construct_card
+	current_construct_card = null
+	
+	if dead.has_node("HPTracker"):
+		dead.get_node("HPTracker").visible = false
+		
+	discard_graveyard_pool.append(dead)
+	var flat_basis = Basis(Quaternion(Vector3.RIGHT, deg_to_rad(-90)))
+	var tween = create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(dead, "global_position", discard_pile_marker.global_position, 0.35)
+	tween.tween_property(dead, "global_transform:basis", flat_basis, 0.35)
+	tween.chain().tween_callback(func():
+		update_graveyard_mouse_priorities()
+)

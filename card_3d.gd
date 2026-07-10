@@ -58,9 +58,15 @@ func deactivate_boss_vfx():
 # --- NEW FUNCTION TO UPDATE AND DISPLAY HEALTH ---
 # --- UPDATE LIVE HP FUNCTION ---
 func update_field_hp_display():
-	# 1. Update floating 3D tracker & toggle visibility (Fixes Issue #1)
-	if hp_tracker and card_info != null:
-		if card_info.card_type.to_lower() == "pie":
+	if card_info == null:
+		return
+		
+	var type = card_info.card_type.to_lower()
+	
+	# Allow BOTH Pies and Constructs to show their 3D HP on the field!
+	if type == "pie" or type == "construct":
+		if has_node("HPTracker"):
+			$HPTracker.visible = true
 			hp_tracker.text = str(current_hp)
 			hp_tracker.visible = is_on_board # Only show if it's placed on the battlefield!
 		else:
@@ -70,8 +76,8 @@ func update_field_hp_display():
 	var live_hp_label = $MeshInstance3D/SubViewport/PieTemplate/LiveHPLabel
 	if live_hp_label != null:
 		live_hp_label.text = "HP: " + str(current_hp)
-# --- NEW FUNCTION TO HANDLE HEALING / DAMAGE OVER TIME ---
 
+# --- NEW FUNCTION TO HANDLE HEALING / DAMAGE OVER TIME ---
 func take_damage(amount: int, hit_pos: Vector3 = Vector3.ZERO):
 	current_hp -= amount
 	spawn_damage_number(amount, hit_pos)

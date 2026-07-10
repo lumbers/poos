@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://dqvkp3b0f37yd" path="res://ghost_slot.tscn" id="11_02kkc"]
 [ext_resource type="Shader" uid="uid://d1wm2o7ebtsah" path="res://vin.gdshader" id="12_krmtw"]
 [ext_resource type="Resource" uid="uid://cclo1mnwsbf40" path="res://cards/data/malevolent_shrine.tres" id="12_qpaub"]
+[ext_resource type="Resource" uid="uid://o2pcx62tqyj" path="res://cards/data/slave.tres" id="13_an1vu"]
 
 [sub_resource type="Environment" id="Environment_krmtw"]
 background_mode = 1
@@ -72,7 +73,7 @@ card_info = ExtResource("12_qpaub")
 card_info = ExtResource("10_jgkyn")
 
 [node name="Card3D4" parent="Camera3D/CardManager" unique_id=318242108 instance=ExtResource("2_yx7mw")]
-card_info = ExtResource("4_6bm6p")
+card_info = ExtResource("13_an1vu")
 
 [node name="Card3D5" parent="Camera3D/CardManager" unique_id=1365467976 instance=ExtResource("2_yx7mw")]
 card_info = ExtResource("5_2pltu")
@@ -158,10 +159,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -1.912)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.94286495, 0.1, -1.912)
 
 [node name="DomainSlotMarker" type="Marker3D" parent="BoardSlots" unique_id=103801605]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9346924, 0.1, -0.38446522)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9091637, 0.1, 0.13532448)
 
 [node name="DomainModelAnchor" type="Marker3D" parent="BoardSlots" unique_id=1420270695]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.8156953, 0.1, -0.4646858)
+
+[node name="ConstructSlotMarker" type="Marker3D" parent="BoardSlots" unique_id=1309919783]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.88285136, 0.1, 0.13096088)
 
 [node name="DiscardPileMarker" type="Marker3D" parent="." unique_id=389567418]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.033, 0.051374882, 1.775)
@@ -628,15 +632,16 @@ text = "Undo Target"
 
 [node name="SFXPlayer" type="AudioStreamPlayer" parent="." unique_id=82789258]
 
-[node name="SpotLight3D" type="SpotLight3D" parent="." unique_id=1919907843]
+[node name="red for fun" type="SpotLight3D" parent="." unique_id=1919907843]
 transform = Transform3D(1, 0, 0, 0, -0.001378818, 0.99999905, 0, -0.99999905, -0.001378818, 0, 1.4494059, 0)
+visible = false
 light_color = Color(0.4270731, 0.0626038, 0.15684292, 1)
 light_energy = 16.0
 light_indirect_energy = 3.9
 light_size = 1.0
 spot_angle = 71.73
 
-[node name="SpotLight3D2" type="SpotLight3D" parent="." unique_id=1980494322]
+[node name="deck light" type="SpotLight3D" parent="." unique_id=1980494322]
 transform = Transform3D(1, 0, 0, 0, -0.001378818, 0.99999905, 0, -0.99999905, -0.001378818, 2.0276108, 1.0707412, 0.7852074)
 light_color = Color(0.0614345, 0.241876, 0.32207784, 1)
 light_energy = 11.726

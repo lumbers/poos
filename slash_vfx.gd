@@ -12,8 +12,8 @@ func _ready():
 	mat.gravity = Vector3(0, 0, 0)
 	
 	# Massive sizing variation
-	mat.scale_min = 2.0
-	mat.scale_max = 5.0
+	mat.scale_min = 5.0
+	mat.scale_max = 15.0
 	
 	# Wild, jagged angular rotation so they slice at crazy angles
 	mat.angle_min = -180.0
@@ -25,7 +25,7 @@ func _ready():
 	
 	process_material = mat
 	amount = 25 # Fewer, larger chunkier cuts look better than tiny noise
-	lifetime = 0.4
+	lifetime = 0.1
 	explosiveness = 0.95
 	
 	# --- GENERATE ANIME OUTLINE TEXTURE ---
@@ -60,6 +60,6 @@ func _ready():
 	draw_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	
 	var mesh = QuadMesh.new()
-	mesh.size = Vector2(2.5, 0.4) # Extra long and wide proportions
+	mesh.size = Vector2(15, 0.4) # Extra long and wide proportions
 	mesh.material = draw_mat
 	draw_pass_1 = mesh
