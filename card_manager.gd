@@ -4,7 +4,7 @@ extends Node3D
 
 @export var max_hand_width: float = 3.4
 @export var card_spacing: float = 0.28
-@export var hand_y_offset: float = -0.75
+@export var hand_y_offset: float = -0.70
 @export var hand_z_depth: float = -1.75
 @export var fan_rotation_intensity: float = 1.5
 var hovered_card_index: int = -1

@@ -1727,10 +1727,16 @@ func place_domain_on_field(card_node: Node3D):
 	slam.tween_property(card_node, "global_transform:basis", flat_basis, 0.22)
 	slam.tween_property(card_node, "scale", field_scale, 0.22)
 	
+	# ... inside place_domain_on_field code ...
 	tween.chain().tween_callback(func():
 		apply_domain_environment(card_node)
 		spawn_domain_model(card_node)
 		play_domain_audio(card_node)
+		
+		# FORCE HIDE THE PINK DROP ZONE VISUAL MESH NOW
+		if is_instance_valid(field_drop_mesh):
+			field_drop_mesh.visible = false
+			
 		if card_node.card_info.domain_has_slash_vfx:
 			start_slash_vfx()
 	)
@@ -1911,10 +1917,13 @@ func _spawn_slash():
 		return
 	var slash = slash_vfx_scene.instantiate()
 	add_child(slash)
-	slash.global_position = Vector3(randf_range(-2.0, 2.0), randf_range(0.5, 2.0), -1.0)
-	# Set one_shot and trigger AFTER adding to scene tree
+	
+	# Shift the Z coordinate further back (-8.0) so they happen completely behind the game table layer!
+	slash.global_position = Vector3(randf_range(-4.0, 4.0), randf_range(1.0, 4.0), -8.0)
+	
 	slash.one_shot = true
 	slash.emitting = true
+	# ... rest of your script ...
 	await get_tree().create_timer(1.5).timeout
 	if is_instance_valid(slash):
 		slash.queue_free()

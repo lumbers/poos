@@ -17,4 +17,5 @@ domain_environment = ExtResource("3_vhbcr")
 domain_model = ExtResource("5_0slbt")
 domain_intro_sound = ExtResource("4_5kg7p")
 domain_bgm = ExtResource("2_ulcgr")
+domain_has_slash_vfx = true
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"
