@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cy8ywpi3xajvt"
+path="res://.godot/imported/With Rage but only the best part  looped.mp3-a4bba233be4ef23cd215b88be4047f4d.mp3str"
+
+[deps]
+
+source_file="res://sounds/music/With Rage but only the best part  looped.mp3"
+dest_files=["res://.godot/imported/With Rage but only the best part  looped.mp3-a4bba233be4ef23cd215b88be4047f4d.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

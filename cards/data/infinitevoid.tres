@@ -1,8 +1,10 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bepo6skftx58i"]
 
 [ext_resource type="Texture2D" uid="uid://dajv4lrkf8po1" path="res://cards/art/infinite void.png" id="1_5p3rc"]
+[ext_resource type="AudioStream" uid="uid://cy8ywpi3xajvt" path="res://sounds/music/With Rage but only the best part  looped.mp3" id="2_817sa"]
 [ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="2_dpqx8"]
 [ext_resource type="Environment" uid="uid://ci3v26401uixj" path="res://environments/infinite_void_env.tres" id="2_ovrlm"]
+[ext_resource type="AudioStream" uid="uid://d3v1jrgvimg45" path="res://sounds/gojodomain.mp3" id="4_mbnv5"]
 
 [resource]
 script = ExtResource("2_dpqx8")
@@ -11,4 +13,6 @@ card_type = "Domain"
 card_art = ExtResource("1_5p3rc")
 use_full_paper_image = true
 domain_environment = ExtResource("2_ovrlm")
+domain_intro_sound = ExtResource("4_mbnv5")
+domain_bgm = ExtResource("2_817sa")
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"
