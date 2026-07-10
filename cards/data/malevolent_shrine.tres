@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cclo1mnwsbf40"]
+
+[ext_resource type="Texture2D" uid="uid://by4wtks5o67hs" path="res://cards/art/shrine.jpg" id="1_wr5bl"]
+[ext_resource type="AudioStream" uid="uid://dxucx1m0t1up5" path="res://sounds/music/Malevolent Shrine - JJK S2 OST but it's the best part (looped) - rngtic (128k).mp3" id="2_ulcgr"]
+[ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="3_dy68t"]
+[ext_resource type="Environment" uid="uid://dl825wg55g46d" path="res://environments/malevolent_shrine_env.tres" id="3_vhbcr"]
+[ext_resource type="AudioStream" uid="uid://cd7be8hqqt3em" path="res://sounds/domainIntroMS.mp3" id="4_5kg7p"]
+[ext_resource type="PackedScene" uid="uid://dxc21rkhxqi0g" path="res://models/Malevolent_shrine.glb" id="5_0slbt"]
+
+[resource]
+script = ExtResource("3_dy68t")
+card_name = "Malevolent Shrine"
+card_type = "Domain"
+card_art = ExtResource("1_wr5bl")
+use_full_paper_image = true
+domain_environment = ExtResource("3_vhbcr")
+domain_model = ExtResource("5_0slbt")
+domain_intro_sound = ExtResource("4_5kg7p")
+domain_bgm = ExtResource("2_ulcgr")
+domain_has_slash_vfx = true
+metadata/_custom_type_script = "uid://cwybq2mf4l4h3"
