@@ -96,53 +96,41 @@ func _on_input_event(camera: Camera3D, event: InputEvent, event_position: Vector
 			is_hovered = true
 			_on_mouse_entered()
 
-	if is_on_board and card_info and card_info.card_type.to_lower() != "pie":
-		return
+	# THE FIX: Allow both "pie" and "construct" to process clicks while on the board!
+	if is_on_board and card_info:
+		var type = card_info.card_type.to_lower().strip_edges()
+		if type != "pie" and type != "construct":
+			return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		print("CLICK DETECTED on: ", card_info.card_name, " | is_on_board: ", is_on_board) 
+		print("CLICK DETECTED on: ", card_info.card_name, " | is_on_board: ", is_on_board)
 		
 		# THIS HANDLES OUR DISCARD HIGHLIGHTS ALREADY!
 		if main_game and main_game.get("is_discard_phase") == true:
 			if not is_on_board: 
 				main_game.toggle_card_discard_selection(self)
 			return
-			
-		# ... (Keep the rest of the function below this unchanged)
-	if is_on_board and event is InputEventMouseMotion:
-		if main_game and main_game.get("is_discard_phase") == false:
-			is_hovered = true
-			_on_mouse_entered()
 
-	if is_on_board and card_info and card_info.card_type.to_lower() != "pie":
-		return
-
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		print("CLICK DETECTED on: ", card_info.card_name, " | is_on_board: ", is_on_board)  # ADD THIS
-		if main_game and main_game.get("is_discard_phase") == true:
-			if not is_on_board: 
-				main_game.toggle_card_discard_selection(self)
-			return
-
-		# Replace your old print statement with this:
+		# Send the click to the main game for tactical targeting or switching!
 		if is_on_board:
 			if main_game and main_game.has_method("handle_field_pie_clicked"):
 				main_game.handle_field_pie_clicked(self)
 			return
 
+		# Dragging logic for cards still in your hand
 		if main_game and main_game.has_node("Camera3D/CardManager"):
 			for existing_card in main_game.get_node("Camera3D/CardManager").get_children():
 				if existing_card.get("is_dragging") == true:
-					print("BLOCKED: another card is dragging")  # ADD THIS
+					print("BLOCKED: another card is dragging")
 					return
 
 		is_dragging = true
-		print("DRAG STARTED")  # ADD THIS
+		print("DRAG STARTED")
 		$Area3D.input_ray_pickable = false 
 
 		var check_is_pie: bool = false
 		if card_info and card_info.get("card_type") != null:
-			if card_info.card_type.to_lower() == "pie":
+			if card_info.card_type.to_lower().strip_edges() == "pie":
 				check_is_pie = true
 
 		if main_game and main_game.has_method("set_ghost_slots_visible"):

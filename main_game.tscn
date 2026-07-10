@@ -43,7 +43,7 @@ bg_color = Color(0.89411765, 0.89411765, 0.89411765, 0.5137255)
 
 [node name="MainGame" type="Node3D" unique_id=1627973838]
 script = ExtResource("1_l5ukw")
-card_pool = Array[ExtResource("2_mf81u")]([ExtResource("3_02kkc"), ExtResource("6_f52ns"), ExtResource("5_2pltu"), ExtResource("4_6bm6p"), ExtResource("10_jgkyn"), ExtResource("10_aomqu")])
+card_pool = Array[ExtResource("2_mf81u")]([ExtResource("3_02kkc"), ExtResource("6_f52ns"), ExtResource("5_2pltu"), ExtResource("4_6bm6p"), ExtResource("10_jgkyn"), ExtResource("10_aomqu"), ExtResource("13_an1vu"), ExtResource("12_qpaub")])
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1723110735]
 environment = SubResource("Environment_krmtw")
@@ -634,7 +634,6 @@ text = "Undo Target"
 
 [node name="red for fun" type="SpotLight3D" parent="." unique_id=1919907843]
 transform = Transform3D(1, 0, 0, 0, -0.001378818, 0.99999905, 0, -0.99999905, -0.001378818, 0, 1.4494059, 0)
-visible = false
 light_color = Color(0.4270731, 0.0626038, 0.15684292, 1)
 light_energy = 16.0
 light_indirect_energy = 3.9

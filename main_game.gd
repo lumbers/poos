@@ -94,7 +94,7 @@ var original_camera_rot: Vector3
 var is_in_attack_phase: bool = false
 var clash_waiting_for_input: bool = false
 var pending_boss_target_pos: Vector3 = Vector3.ZERO
-
+var pending_is_healing: bool = false
 var is_in_boss_tribute: bool = false
 var current_tributes_selected: Array[Node3D] = []
 
@@ -992,15 +992,26 @@ func cancel_switching_discard():
 func handle_field_pie_clicked(pie: Node3D):
 	if is_discard_phase: return
 	
-	# --- NEW: INTERCEPT CLICKS FOR BIRD'S-EYE TARGETING ---
+	# --- NEW: UNIFIED TACTICAL TARGETING ---
 	if is_in_tactical_targeting:
-		if pie.get("is_opponent") == true:
-			add_tactical_target(pie) # <--- THIS REPLACES THE PRINT STATEMENT
+		var type = ""
+		if pie.card_info:
+			type = pie.card_info.card_type.to_lower().strip_edges()
+			
+		# Enforce single-target rules: NO benched pies allowed
+		if targets_allowed == 1:
+			# If the clicked card is NOT one of these three, block it!
+			if pie != active_slot_card and pie != opponent_active_card and pie != current_construct_card:
+				spawn_floating_error_text("Can only hit Active Pies or Constructs!", get_viewport().get_mouse_position())
+				return
+				
+		# Allow targeting ANY active Pie or Construct (including yourself!)
+		if type == "pie" or type == "construct":
+			add_tactical_target(pie)
 		else:
-			spawn_floating_error_text("You can only target enemy pies!", get_viewport().get_mouse_position())
+			spawn_floating_error_text("Invalid target!", get_viewport().get_mouse_position())
 		return 
 		
-	# ... (Keep normal selection logic below this!)
 	# --- NORMAL SELECTION LOGIC (Keep all of this exactly as it was!) ---
 	if pie.get("is_opponent") == true:
 		print("You cannot select the opponent's cards!")
@@ -1008,7 +1019,6 @@ func handle_field_pie_clicked(pie: Node3D):
 		
 	# 1. DESELECTING THE PRIMARY CARD
 	if selected_field_pie == pie:
-# ... (Leave the rest of the function untouched)
 		pie.set_selection_highlight(false)
 		if target_field_pie != null:
 			selected_field_pie = target_field_pie
@@ -1031,9 +1041,6 @@ func handle_field_pie_clicked(pie: Node3D):
 		selected_field_pie = pie
 		pie.set_selection_highlight(true)
 		set_ghost_slots_visible(true, true) 
-		
-		# FIX: Removed the isolated button logic here. 
-		# We just call the evaluator to handle all UI perfectly!
 		evaluate_switch_validity()
 		
 	# 4. SELECTING A NEW TARGET CARD
@@ -1338,7 +1345,6 @@ func execute_move(move_num: int):
 		cancel_attack_phase()
 		return
 		
-	# Check for Status Locks!
 	if not active_slot_card.can_attack:
 		spawn_floating_error_text("This Pie is locked from attacking!", get_viewport().get_mouse_position())
 		cancel_attack_phase()
@@ -1347,66 +1353,33 @@ func execute_move(move_num: int):
 	var card_data = active_slot_card.card_info
 	var dmg_string = card_data.move1_dmg if move_num == 1 else card_data.move2_dmg
 	
-	# --- NEW: PARSE THE HEALING SYMBOL ---
-	var is_healing = false
+	pending_is_healing = false
 	if "±" in dmg_string:
-		is_healing = true
-		dmg_string = dmg_string.replace("±", "") # Strip the symbol so math works!
+		pending_is_healing = true
+		dmg_string = dmg_string.replace("±", "")
 		
-	# Add the Pie's dynamic buff to the base damage!
 	pending_damage_amount = dmg_string.to_int() + active_slot_card.current_damage_buff
-	
 	targets_allowed = card_data.move1_targets if move_num == 1 else card_data.move2_targets
 	
 	attack_overlay.visible = false
 	
-	if targets_allowed == 1:
-		# --- NORMAL SINGLE ATTACK OR HEAL ---
-		current_energy -= 1
-		has_attacked_this_turn = true
-		update_hud_display()
-		
-		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-		cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.0)
-		cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.0)
-		
-		cam_tween.chain().tween_callback(func():
-			is_in_attack_phase = false
-			if has_node("UI"): $UI.visible = true
-			
-			# IF HEALING, HEAL SELF! IF NOT, RAM THE ENEMY!
-			if is_healing:
-				active_slot_card.heal_pie(pending_damage_amount)
-				# TODO: Play your Healing SFX and VFX here!
-			else:
-				if opponent_active_card != null:
-					animate_physical_attack(active_slot_card, opponent_active_card, pending_damage_amount)
-		)
-		
-	else:
-		# ... (Keep all your Tactical Multi-Target code exactly the same here!)
-		# --- TACTICAL MULTI-TARGET ATTACK (Ghidorah) ---
-		is_in_tactical_targeting = true
-		current_targets_selected.clear()
-		
-		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-		
-		var tactical_pos = Vector3(0, 5.0, 0) 
-		var tactical_rot = Vector3(deg_to_rad(-90), 0, 0) 
-		
-		cam_tween.tween_property(camera_3d, "global_position", tactical_pos, 1.2)
-		cam_tween.tween_property(camera_3d, "rotation", tactical_rot, 1.2)
-		
-		cam_tween.chain().tween_callback(func():
-			print("Entered Tactical Targeting Mode! Select ", targets_allowed, " targets.")
-			
-			# BULLETPROOF UI FORCING
-			if has_node("TacticalOverlay"):
-				$TacticalOverlay.visible = true
-				$TacticalOverlay/Control.visible = true
-				$TacticalOverlay/Control/TargetText.text = "Select " + str(targets_allowed) + " Targets"
-				$TacticalOverlay/Control/ConfirmButton.visible = false
-		)
+	is_in_tactical_targeting = true
+	current_targets_selected.clear()
+	
+	# THE FIX: Show the UI instantly right now, NOT inside the camera tween!
+	if has_node("TacticalOverlay"):
+		$TacticalOverlay.visible = true
+		$TacticalOverlay/Control.visible = true
+		$TacticalOverlay/Control/TargetText.text = "Select " + str(targets_allowed) + " Target" + ("s" if targets_allowed > 1 else "")
+		$TacticalOverlay/Control/ConfirmButton.visible = false
+	
+	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	var tactical_pos = Vector3(0, 5.0, 0) 
+	var tactical_rot = Vector3(deg_to_rad(-90), 0, 0) 
+	
+	cam_tween.tween_property(camera_3d, "global_position", tactical_pos, 1.2)
+	cam_tween.tween_property(camera_3d, "rotation", tactical_rot, 1.2)
+	# Removed the delayed callback that was overriding your fast clicks!
 		
 func spawn_floating_error_text(message: String, spawn_pos: Vector2):
 	var error_label = Label.new()
@@ -1506,29 +1479,59 @@ func rearrange_reticles_on_pie(pie: Node3D):
 			if i == 2: r.position = Vector3(-0.3, -0.3, 0.1) # Bottom Left
 		
 func execute_tactical_attack():
-	print("TACTICAL ATTACK CONFIRMED! Firing at targets...")
-	
-	# 1. Hide the UI immediately
+	# THE FIX: Safety shield to prevent double-click crashes!
+	if spawned_reticles.is_empty():
+		return 
+		
 	if has_node("TacticalOverlay"):
 		$TacticalOverlay.visible = false
-	
-	# 2. Loop through every spawned crosshair and blast exactly where it sits!
+		
+	# ==========================================
+	# --- SINGLE TARGET: PHYSICAL LUNGE OR HEAL ---
+	# ==========================================
+	if targets_allowed == 1:
+		var target_node = spawned_reticles[0].get_meta("target_pie")
+		
+		# Clean up UI immediately
+		for r in spawned_reticles:
+			if is_instance_valid(r): r.queue_free()
+		spawned_reticles.clear()
+		
+		current_energy -= 1
+		has_attacked_this_turn = true
+		update_hud_display()
+		
+		is_in_tactical_targeting = false 
+		current_targets_selected.clear()
+		
+		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
+		cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
+		
+		cam_tween.chain().tween_callback(func():
+			is_in_attack_phase = false
+			if has_node("UI"): $UI.visible = true
+			
+			if pending_is_healing:
+				if target_node.has_method("heal_pie"):
+					target_node.heal_pie(pending_damage_amount)
+			else:
+				animate_physical_attack(active_slot_card, target_node, pending_damage_amount)
+		)
+		return 
+
+	# ==========================================
+	# --- MULTI-TARGET: LIGHTNING STRIKES ---
+	# ==========================================
 	for r in spawned_reticles:
 		if is_instance_valid(r):
 			var target_pie = r.get_meta("target_pie")
 			if target_pie.has_method("take_damage"):
-				# Deal the damage!
 				target_pie.take_damage(pending_damage_amount, r.global_position)
 				
-				# --- THE MISSING VFX CODE ---
 				var lightning = lightning_vfx_scene.instantiate()
-				add_child(lightning) # Add it to the main game board!
-				
-				# --- NEW: SCALE THE LIGHTNING HERE! ---
-				# 1.0 is normal size. 0.5 is half size. 2.0 is double size!
+				add_child(lightning)
 				lightning.scale = Vector3(0.5, 0.5, 0.5)
-				
-				# Move it exactly to where the red crosshair is
 				lightning.global_position = r.global_position + Vector3(0, 0, 0)
 				
 				var particles = lightning.get_node_or_null("GPUParticles3D")
@@ -1536,38 +1539,30 @@ func execute_tactical_attack():
 					particles.emitting = true
 					
 				get_tree().create_timer(2.0).timeout.connect(lightning.queue_free)
-				# ----------------------------
-
-				# Play the lightning sound!
-				sfx_player.stream = lightning_sound
-				sfx_player.play()
 				
-				# Hide the crosshair the exact millisecond the damage hits
+				if sfx_player:
+					sfx_player.stream = lightning_sound
+					sfx_player.play()
+				
 				r.visible = false 
-				
-				# PAUSE THE CODE FOR 0.2 SECONDS BEFORE THE NEXT HIT!
 				await get_tree().create_timer(0.2).timeout
 			
-	# 3. Clean up the red crosshairs AFTER all the delays are done
 	for r in spawned_reticles:
-		if is_instance_valid(r):
-			r.queue_free()
+		if is_instance_valid(r): r.queue_free()
 	spawned_reticles.clear()
 	
-	# 4. Deduct the action point and lock attacks for the turn
 	current_energy -= 1
 	has_attacked_this_turn = true
 	update_hud_display()
 	
-	# 5. Swoop the camera back down to your seat
 	is_in_tactical_targeting = false 
 	current_targets_selected.clear()
 	
-	var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
-	cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
+	var multi_cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	multi_cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
+	multi_cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
 	
-	cam_tween.chain().tween_callback(func():
+	multi_cam_tween.chain().tween_callback(func():
 		is_in_attack_phase = false
 		if has_node("UI"): $UI.visible = true
 	)
@@ -2009,7 +2004,7 @@ func _spawn_slash():
 		return
 	var slash = slash_vfx_scene.instantiate()
 	add_child(slash)
-	#slash.global_position = Vector3(randf_range(-4.0, 4.0), randf_range(1.0, 4.0), -8.0)
+	slash.global_position = Vector3(randf_range(-4.0, 4.0), randf_range(1.0, 4.0), -8.0)
 	slash.one_shot = true
 	slash.emitting = true
 	
