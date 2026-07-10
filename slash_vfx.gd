@@ -22,15 +22,10 @@ func _ready():
 	mat.scale_min = 0.05
 	mat.scale_max = 0.15
 	
-	# Emit from a wide area across the background
-	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	mat.emission_box_extents = Vector3(3.0, 1.5, 0.1)
-	
 	process_material = mat
 	amount = 40
 	lifetime = 0.6
 	explosiveness = 0.8  # burst mode for slash feel
-	one_shot = true
 	
 	# Wide thin quad for slash shape
 	var draw_mat = StandardMaterial3D.new()

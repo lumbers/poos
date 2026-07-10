@@ -1859,7 +1859,7 @@ func spawn_domain_model(domain_card: Node3D):
 	spawned_domain_model.scale = Vector3.ZERO
 	var t = create_tween()
 	t.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-	t.tween_property(spawned_domain_model, "scale", Vector3(0.5, 0.5, 0.5), 1.2)
+	t.tween_property(spawned_domain_model, "scale", Vector3(0.1, 0.1, 0.1), 1.2)
 
 func despawn_domain_model():
 	if is_instance_valid(spawned_domain_model):
@@ -1907,17 +1907,18 @@ func start_slash_vfx():
 	domain_slash_timer.start()
 
 func _spawn_slash():
+	if current_domain_card == null:
+		return
 	var slash = slash_vfx_scene.instantiate()
 	add_child(slash)
-	# Position in the background behind the field
 	slash.global_position = Vector3(randf_range(-2.0, 2.0), randf_range(0.5, 2.0), -1.0)
+	# Set one_shot and trigger AFTER adding to scene tree
+	slash.one_shot = true
 	slash.emitting = true
-	# Clean it up after it finishes
 	await get_tree().create_timer(1.5).timeout
 	if is_instance_valid(slash):
 		slash.queue_free()
-	# Randomize next slash timing
-	if domain_slash_timer:
+	if domain_slash_timer and is_instance_valid(domain_slash_timer):
 		domain_slash_timer.wait_time = randf_range(1.0, 2.5)
 		domain_slash_timer.start()
 
