@@ -164,6 +164,10 @@ func _ready():
 	original_camera_pos = camera_3d.global_position
 	original_camera_rot = camera_3d.rotation
 	
+	var warning = get_node_or_null("UI/HUD/EndTurnWarning")
+	if warning:
+		warning.visible = false
+	
 	if attack_overlay: attack_overlay.visible = false
 	if tactical_overlay: tactical_overlay.visible = false # <--- ADD THIS LINE
 	get_viewport().physics_object_picking = true
@@ -465,6 +469,20 @@ func try_place_pie_on_field(card_node: Node3D):
 # --- REVISED END TURN BUTTON CLICKED ---
 # Find your _on_end_turn_pressed() function and update it to this:
 func _on_end_turn_pressed():
+	print("END TURN PRESSED | is_in_boss_tribute: ", is_in_boss_tribute, " | current_discard_mode: ", current_discard_mode, " | is_discard_phase: ", is_discard_phase, " | is_in_domain_clash: ", is_in_domain_clash)
+	
+	if is_in_boss_tribute:
+		show_end_turn_warning("Discard cards first!")
+		return
+	
+	if is_in_domain_clash:
+		show_end_turn_warning("Resolve domain clash first!")
+		return
+	# ... rest unchanged
+	
+	# ... rest unchanged
+		
+	# ... rest of your existing function
 	execute_end_of_turn_passives()
 	
 	if current_discard_mode == DiscardMode.SWITCHING:
@@ -608,6 +626,7 @@ func _on_confirm_discard_pressed():
 		execute_paid_switch()
 	# --- NEW: ROAR ON SUCCESSFUL BOSS SUMMON ---
 	elif finished_mode == DiscardMode.BOSS_TRIBUTE:
+		is_in_boss_tribute = false
 		current_energy -= 1
 		update_hud_display() 
 		
@@ -1595,7 +1614,7 @@ func undo_last_target():
 
 func start_boss_tribute_phase(boss_card: Node3D):
 	pending_boss_card = boss_card
-	
+	is_in_boss_tribute = true
 	is_discard_phase = true
 	current_discard_mode = DiscardMode.BOSS_TRIBUTE
 	marked_for_discard.clear()
@@ -1640,7 +1659,12 @@ func add_tribute_target(hand_card: Node3D):
 func finalize_boss_summon():
 	$TacticalOverlay.visible = false
 	is_in_boss_tribute = false
-
+	current_discard_mode = DiscardMode.NONE  # ← ADD THIS
+	is_discard_phase = false 
+	# Hide the discard UI immediately
+	if discard_overlay: discard_overlay.visible = false
+	if confirm_discard_button: confirm_discard_button.visible = false
+	if cancel_button: cancel_button.visible = false
 	# 1. Destroy the 3 tributed cards! 
 	for t_card in current_tributes_selected:
 		if is_instance_valid(t_card):
@@ -1683,7 +1707,12 @@ func finalize_boss_summon():
 func cancel_boss_summon():
 	$TacticalOverlay.visible = false
 	is_in_boss_tribute = false
-
+	current_discard_mode = DiscardMode.NONE  # ← ADD THIS
+	is_discard_phase = false 
+	# Hide the discard UI immediately
+	if discard_overlay: discard_overlay.visible = false
+	if confirm_discard_button: confirm_discard_button.visible = false
+	if cancel_button: cancel_button.visible = false 
 	if is_instance_valid(pending_boss_card) and pending_boss_card.has_method("deactivate_boss_vfx"):
 		pending_boss_card.deactivate_boss_vfx()
 	show_boss_vignette(false)
@@ -2087,3 +2116,17 @@ func expire_construct():
 	tween.chain().tween_callback(func():
 		update_graveyard_mouse_priorities()
 )
+
+func show_end_turn_warning(message: String):
+	var warning = get_node_or_null("UI/HUD/EndTurnWarning")
+	if warning == null:
+		print("WARNING: EndTurnWarning label not found in scene!")
+		return
+	warning.text = message
+	warning.visible = true
+	warning.modulate = Color(1, 0.2, 0.2, 1)
+	
+	var t = create_tween()
+	t.tween_interval(1.5)
+	t.tween_property(warning, "modulate:a", 0.0, 0.5)
+	t.tween_callback(func(): warning.visible = false; warning.modulate.a = 1.0)

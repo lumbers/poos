@@ -289,6 +289,23 @@ offset_right = -0.11999512
 offset_bottom = -0.08000183
 horizontal_alignment = 1
 
+[node name="EndTurnWarning" type="Label" parent="UI/HUD" unique_id=2057381399]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.83800006
+anchor_top = 0.80200005
+anchor_right = 1.0
+anchor_bottom = 0.84400004
+offset_left = 0.039916992
+offset_top = -0.16003418
+offset_right = -1.0
+offset_bottom = -0.52001953
+theme_override_colors/font_color = Color(0.72938496, 0.069487125, 0.21799394, 1)
+theme_override_font_sizes/font_size = 32
+text = "bro ur cheating"
+horizontal_alignment = 1
+
 [node name="ConfirmDiscardButton" type="Button" parent="UI" unique_id=1253456435]
 visible = false
 anchors_preset = -1
