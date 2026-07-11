@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://de81nwr5o75gr"]
+
+[ext_resource type="Script" uid="uid://ciulrs6np0csi" path="res://psychic_meteor.gd" id="1_274mu"]
+[ext_resource type="Texture2D" uid="uid://ru2p6byadq4l" path="res://cards/art/textures/meteor_Base_Color.png" id="2_5d7l6"]
+[ext_resource type="Texture2D" uid="uid://dyhk2kg5g3ekb" path="res://cards/art/textures/meteor_Normal_OpenGL.png" id="3_3xiix"]
+[ext_resource type="Texture2D" uid="uid://s6hn010cr46r" path="res://cards/art/textures/meteor_Roughness.png" id="4_o0hyo"]
+[ext_resource type="ArrayMesh" uid="uid://2hilfbw68xpr" path="res://models/Meteor_mp.obj" id="5_67py5"]
+[ext_resource type="Shader" uid="uid://d146aygucp00c" path="res://meteor.gdshader" id="6_bu5qq"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_q8yl8"]
+albedo_texture = ExtResource("2_5d7l6")
+metallic = 1.0
+metallic_texture = ExtResource("3_3xiix")
+roughness_texture = ExtResource("4_o0hyo")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0i6t8"]
+render_priority = 0
+shader = ExtResource("6_bu5qq")
+
+[node name="psychic_meteor" type="Node3D" unique_id=1921159993]
+script = ExtResource("1_274mu")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=161658091]
+material_override = SubResource("StandardMaterial3D_q8yl8")
+mesh = ExtResource("5_67py5")
+surface_material_override/0 = SubResource("ShaderMaterial_0i6t8")
+
+[node name="GPUParticles3D" type="GPUParticles3D" parent="." unique_id=986912673]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=919588740]
+light_color = Color(0.83537775, 0.49536532, 0.21566194, 1)
+light_energy = 16.0
+omni_range = 7.7260523
+
+[node name="SpotLight3D" type="SpotLight3D" parent="." unique_id=2072630298]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4.2112722)
+light_color = Color(0.75028276, 0.41190606, 0.08298009, 1)
+light_energy = 16.0
+
+[node name="SpotLight3D3" type="SpotLight3D" parent="." unique_id=1984241572]
+transform = Transform3D(1, 0, 0, 0, -0.9999948, -0.0032288097, 0, 0.0032288097, -0.9999948, 0, 0, -3.064887)
+light_color = Color(0.75028276, 0.41190606, 0.08298009, 1)
+light_energy = 16.0
+
+[node name="SpotLight3D4" type="SpotLight3D" parent="." unique_id=662312802]
+transform = Transform3D(0.029334823, 0.0032274202, -0.99956447, 0, -0.9999948, -0.0032288097, -0.99956965, 9.471656e-05, -0.02933467, -2.117618, 0, 0.28228426)
+light_color = Color(0.75028276, 0.41190606, 0.08298009, 1)
+light_energy = 16.0
+
+[node name="SpotLight3D5" type="SpotLight3D" parent="." unique_id=1023763375]
+transform = Transform3D(-0.0017376975, -0.9984299, 0.055987738, -0.029283311, 0.056014616, 0.99800044, -0.9995696, 9.471656e-05, -0.02933467, 0.24415874, 2.0378027, 0.28228426)
+light_color = Color(0.75028276, 0.41190606, 0.08298009, 1)
+light_energy = 16.0
+
+[node name="SpotLight3D2" type="SpotLight3D" parent="." unique_id=793847264]
+transform = Transform3D(0.0071557765, 0, 0.9999744, 0, 1, 0, -0.9999744, 0, 0.0071557765, 2.2483263, 0, -0.1429367)
+light_color = Color(0.75028276, 0.41190606, 0.08298009, 1)
+light_energy = 16.0

@@ -88,7 +88,7 @@ var player_can_draw: bool = true
 
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
 var default_environment: Environment  # saved at game start
-
+var meteor_scene = preload("res://psychic_meteor.tscn")
 var original_camera_pos: Vector3
 var original_camera_rot: Vector3
 var is_in_attack_phase: bool = false
@@ -1370,6 +1370,29 @@ func execute_move(move_num: int):
 		return
 		
 	var card_data = active_slot_card.card_info
+	var move_name = card_data.move1_name if move_num == 1 else card_data.move2_name
+	
+	# --- THE METEOR BYPASS ---
+	# If the move is Psychic Meteor, skip targeting and instantly drop it!
+	if move_name.to_lower().strip_edges() == "psychic meteor":
+		attack_overlay.visible = false
+		current_energy -= 1
+		has_attacked_this_turn = true
+		update_hud_display()
+		
+		# Return camera to battle view and drop the rock
+		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
+		cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
+		
+		cam_tween.chain().tween_callback(func():
+			is_in_attack_phase = false
+			if has_node("UI"): $UI.visible = true
+			spawn_psychic_meteor_strike() 
+		)
+		return # EXIT HERE! Do not enter crosshair mode.
+		
+	# ... (Keep the rest of your original execute_move code below here exactly the same)
 	var dmg_string = card_data.move1_dmg if move_num == 1 else card_data.move2_dmg
 	
 	pending_is_healing = false
@@ -1534,11 +1557,44 @@ func execute_tactical_attack():
 			if pending_is_healing:
 				if target_node.has_method("heal_pie"):
 					target_node.heal_pie(pending_damage_amount)
+					
+			# --- TELEKINESIS CHECK ---
+			# If the pie is psychic and deals 0 damage, trap them!
+			elif pending_damage_amount == 0 and active_slot_card.card_info.card_name.to_lower() == "psychic pie":
+				target_node.can_attack = false
+				target_node.can_switch = false
+				spawn_floating_error_text("Telekinesis Trapped!", target_node.global_position)
+				# We skip the lunge animation so he just attacks with his mind!
+				
 			else:
 				animate_physical_attack(active_slot_card, target_node, pending_damage_amount)
 		)
 		return 
-
+	# ... inside execute_tactical_attack() ...
+	if targets_allowed > 1:
+		# CHECKMOVE HOOK INTERCEPTOR
+		if active_slot_card and active_slot_card.card_info and active_slot_card.card_info.card_name.to_lower() == "psychic pie":
+			# Clear reticles and drop the giant cosmic rock instead of lightning strikes!
+			for r in spawned_reticles:
+				if is_instance_valid(r): r.queue_free()
+			spawned_reticles.clear()
+			
+			current_energy -= 1
+			has_attacked_this_turn = true
+			update_hud_display()
+			is_in_tactical_targeting = false
+			
+			var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
+			cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
+			
+			cam_tween.chain().tween_callback(func():
+				is_in_attack_phase = false
+				if has_node("UI"): $UI.visible = true
+				spawn_psychic_meteor_strike() # Triggers the flaming comet drop sequence
+			)
+			return # Exit early out of the standard lightning engine block
+			
 	# ==========================================
 	# --- MULTI-TARGET: LIGHTNING STRIKES ---
 	# ==========================================
@@ -2130,3 +2186,69 @@ func show_end_turn_warning(message: String):
 	t.tween_interval(1.5)
 	t.tween_property(warning, "modulate:a", 0.0, 0.5)
 	t.tween_callback(func(): warning.visible = false; warning.modulate.a = 1.0)
+
+func spawn_psychic_meteor_strike():
+	# Define target position: the center space between enemy cards
+	var target_center = Vector3(0, 0.05, -1.8) 
+	if opponent_active_card:
+		target_center = opponent_active_card.global_position
+		
+	# Spawn meteor way up high in the sky and offset it diagonally
+	var start_pos = target_center + Vector3(-5.0, 8.0, -4.0)
+	
+	var meteor = meteor_scene.instantiate()
+	add_child(meteor)
+	meteor.global_position = start_pos
+	# --- THE FIX: SCALE THE METEOR HERE ---
+	# Vector3(2.5, 2.5, 2.5) multiplies its original physical proportions by 2.5x!
+	# Increase or decrease this number to find your perfect comic scale.
+	meteor.scale = Vector3(2.5, 2.5, 2.5)
+	# Make the meteor orient itself looking directly along its flight path toward impact
+	meteor.look_at(target_center, Vector3.UP)
+	
+	# Tween the catastrophic decent crashing inward
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(meteor, "global_position", target_center, 0.65)
+	
+	# Explosive Shockwave Trigger Upon Landing
+	tween.chain().tween_callback(func():
+		# Scan the board for ANY enemy cards and detonate damage across all of them!
+		for node in get_children():
+			if node.get("is_opponent") == true and node.get("is_on_board") == true:
+				if node.has_method("take_damage"):
+					node.take_damage(150, node.global_position)
+				
+		# Play audio impact burst
+		if sfx_player:
+			sfx_player.stream = lightning_sound # Replace with a bass heavy crash SFX file if desired!
+			sfx_player.play()
+			
+		# Flash screen via a camera shake or vignette pop
+		if boss_vignette:
+			boss_vignette.modulate = Color(1.5, 0.5, 2.0, 1.0) # Bright psychic purple blast hue tint
+			var flash_fade = create_tween()
+			flash_fade.tween_property(boss_vignette, "modulate", Color(1, 1, 1, 1), 0.4)
+			
+		# --- TRIGGER THE SHAKE ---
+		trigger_camera_shake(0.3, 0.6)
+		
+		# Delete meteor asset container node safely
+		meteor.queue_free()
+)
+
+func trigger_camera_shake(intensity: float, duration: float):
+	var shake_tween = create_tween()
+	var original_v = camera_3d.v_offset
+	var original_h = camera_3d.h_offset
+	var steps = int(duration / 0.05)
+	
+	for i in range(steps):
+		var random_h = randf_range(-intensity, intensity)
+		var random_v = randf_range(-intensity, intensity)
+		shake_tween.chain().tween_property(camera_3d, "h_offset", random_h, 0.025)
+		shake_tween.parallel().tween_property(camera_3d, "v_offset", random_v, 0.025)
+	
+	# Smoothly return camera to true center
+	shake_tween.chain().tween_property(camera_3d, "h_offset", original_h, 0.05)
+	shake_tween.parallel().tween_property(camera_3d, "v_offset", original_v, 0.05)

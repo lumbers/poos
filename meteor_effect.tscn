@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://chdfscc7u7hjr"]
+
+[ext_resource type="ArrayMesh" uid="uid://2hilfbw68xpr" path="res://models/Meteor_mp.obj" id="1_uwbip"]
+[ext_resource type="Shader" uid="uid://d146aygucp00c" path="res://meteor.gdshader" id="2_atb55"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0i6t8"]
+render_priority = 0
+shader = ExtResource("2_atb55")
+
+[node name="Meteor effect" type="Node3D" unique_id=1921159993]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=161658091]
+mesh = ExtResource("1_uwbip")
+surface_material_override/0 = SubResource("ShaderMaterial_0i6t8")
+
+[node name="GPUParticles3D" type="GPUParticles3D" parent="." unique_id=986912673]
