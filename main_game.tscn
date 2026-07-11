@@ -16,6 +16,7 @@
 [ext_resource type="Shader" uid="uid://d1wm2o7ebtsah" path="res://vin.gdshader" id="12_krmtw"]
 [ext_resource type="Resource" uid="uid://cclo1mnwsbf40" path="res://cards/data/malevolent_shrine.tres" id="12_qpaub"]
 [ext_resource type="Resource" uid="uid://o2pcx62tqyj" path="res://cards/data/slave.tres" id="13_an1vu"]
+[ext_resource type="Resource" uid="uid://bked3e8vt5mtq" path="res://cards/data/psychic_pie.tres" id="14_borgi"]
 
 [sub_resource type="Environment" id="Environment_krmtw"]
 background_mode = 1
@@ -76,7 +77,7 @@ card_info = ExtResource("10_jgkyn")
 card_info = ExtResource("13_an1vu")
 
 [node name="Card3D5" parent="Camera3D/CardManager" unique_id=1365467976 instance=ExtResource("2_yx7mw")]
-card_info = ExtResource("5_2pltu")
+card_info = ExtResource("14_borgi")
 
 [node name="Card3D7" parent="Camera3D/CardManager" unique_id=701594680 instance=ExtResource("2_yx7mw")]
 card_info = ExtResource("10_aomqu")

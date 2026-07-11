@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bked3e8vt5mtq"]
+
+[ext_resource type="Texture2D" uid="uid://b55ecn3qfneng" path="res://cards/art/psychic.jpg" id="1_6b3x1"]
+[ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="2_if1vp"]
+
+[resource]
+script = ExtResource("2_if1vp")
+card_name = "Psychic Pie"
+max_hp = 300
+card_art = ExtResource("1_6b3x1")
+is_half_art = true
+move1_name = "Psychic Meteor"
+move1_dmg = "150"
+move1_desc = "Hits all opponent's pies."
+move1_targets = 12
+move1_has_cooldown = true
+move2_name = "Telekenesis"
+move2_dmg = "0"
+move2_desc = "One of your opponent's pies cannot attack/switch for 1 turn."
+metadata/_custom_type_script = "uid://cwybq2mf4l4h3"
