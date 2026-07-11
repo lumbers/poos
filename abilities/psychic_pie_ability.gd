@@ -33,7 +33,7 @@ func spawn_psychic_meteor_strike(main_game: Node3D):
 	var start_pos = target_center + Vector3(-5.0, 8.0, -4.0)
 	var meteor = meteor_scene.instantiate()
 	main_game.add_child(meteor)
-	meteor.scale = Vector3(2.5, 2.5, 2.5)
+	meteor.scale = Vector3(3, 3, 3)
 	meteor.global_position = start_pos
 	meteor.look_at(target_center, Vector3.UP)
 	
