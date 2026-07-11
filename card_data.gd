@@ -41,3 +41,7 @@ class_name CardData
 @export var domain_intro_sound: AudioStream   # ryoiki tenkai sfx
 @export var domain_bgm: AudioStream           # looping background music
 @export var domain_has_slash_vfx: bool = false
+
+# Inside card_data.gd
+@export_category("Custom Ability Scripts")
+@export var custom_ability_script: Script # Drag your psychic_pie_ability.gd or slave_ability.gd file here!

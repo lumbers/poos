@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://o2pcx62tqyj"]
 
 [ext_resource type="Texture2D" uid="uid://cqcug4igpdf6e" path="res://cards/art/IMG_2152.jpg" id="1_7kno2"]
+[ext_resource type="Script" uid="uid://dxlto4neo81lk" path="res://abilities/slave_ability.gd" id="2_bjtj4"]
 [ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="2_fg03k"]
 
 [resource]
@@ -10,4 +11,5 @@ card_type = "construct"
 max_hp = 100
 card_art = ExtResource("1_7kno2")
 use_full_paper_image = true
+custom_ability_script = ExtResource("2_bjtj4")
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"

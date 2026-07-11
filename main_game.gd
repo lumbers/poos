@@ -683,11 +683,12 @@ func start_new_turn():
 	if opponent_active_card == null:
 		spawn_dummy_opponent()
 	
-	# --- 3. THE FREE DRAW (Upgraded for Construct Buffs) ---
+	# --- 3. THE FREE DRAW (Cleaned up via scripts!) ---
 	var loops_to_draw = 1
-	if current_construct_card != null and current_construct_card.card_info.card_name.to_lower() == "slave":
-		loops_to_draw = 2
-		print("Slave Construct active! Drawing an extra card.")
+	
+	if current_construct_card != null and current_construct_card.card_info.custom_ability_script != null:
+		var ability_instance = current_construct_card.card_info.custom_ability_script.new()
+		loops_to_draw = ability_instance.execute_passive_effect(self, current_construct_card)
 		
 	for d in range(loops_to_draw):
 		if card_pool.is_empty():
@@ -1373,26 +1374,12 @@ func execute_move(move_num: int):
 	var card_data = active_slot_card.card_info
 	var move_name = card_data.move1_name if move_num == 1 else card_data.move2_name
 	
-	# --- THE METEOR BYPASS ---
-	# If the move is Psychic Meteor, skip targeting and instantly drop it!
-	if move_name.to_lower().strip_edges() == "psychic meteor":
-		attack_overlay.visible = false
-		current_energy -= 1
-		has_attacked_this_turn = true
-		update_hud_display()
-		
-		# Return camera to battle view and drop the rock
-		var cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-		cam_tween.tween_property(camera_3d, "global_position", original_camera_pos, 1.2)
-		cam_tween.tween_property(camera_3d, "rotation", original_camera_rot, 1.2)
-		
-		cam_tween.chain().tween_callback(func():
-			is_in_attack_phase = false
-			if has_node("UI"): $UI.visible = true
-			spawn_psychic_meteor_strike() 
-		)
-		return # EXIT HERE! Do not enter crosshair mode.
-		
+	# THE CLEAN UP HOOK:
+	if card_data.custom_ability_script != null:
+		var ability_instance = card_data.custom_ability_script.new()
+		var intercepted = ability_instance.execute_special_attack(self, active_slot_card, move_num)
+		if intercepted:
+			return # Let the external file handle the entire attack sequence!
 	# ... (Keep the rest of your original execute_move code below here exactly the same)
 	var dmg_string = card_data.move1_dmg if move_num == 1 else card_data.move2_dmg
 	

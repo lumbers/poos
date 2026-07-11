@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://ds1vo3by8hbc1" path="res://cards/art/IMG_2150 2.jpg" id="1_6b3x1"]
 [ext_resource type="Script" uid="uid://cwybq2mf4l4h3" path="res://card_data.gd" id="2_if1vp"]
+[ext_resource type="Script" uid="uid://dm6up5coki8a3" path="res://abilities/psychic_pie_ability.gd" id="2_t1f22"]
 
 [resource]
 script = ExtResource("2_if1vp")
@@ -17,4 +18,5 @@ move1_has_cooldown = true
 move2_name = "Telekenesis"
 move2_dmg = "0"
 move2_desc = "One of your opponent's pies cannot attack/switch for 1 turn."
+custom_ability_script = ExtResource("2_t1f22")
 metadata/_custom_type_script = "uid://cwybq2mf4l4h3"
