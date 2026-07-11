@@ -127,6 +127,7 @@ var reticle_scene = preload("res://target_reticle.tscn") # Make sure you saved y
 var spawned_reticles: Array[Node3D] = []
 
 var lightning_sound = preload("res://sounds/thunda.mp3")
+var meteor_sound = preload("res://sounds/meteor.mp3")
 
 # Inside main_game.gd near your other array trackers:
 var discard_graveyard_pool: Array[Node3D] = []
@@ -2221,7 +2222,7 @@ func spawn_psychic_meteor_strike():
 				
 		# Play audio impact burst
 		if sfx_player:
-			sfx_player.stream = lightning_sound # Replace with a bass heavy crash SFX file if desired!
+			sfx_player.stream = meteor_sound # Replace with a bass heavy crash SFX file if desired!
 			sfx_player.play()
 			
 		# Flash screen via a camera shake or vignette pop
